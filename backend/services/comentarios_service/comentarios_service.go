@@ -12,6 +12,7 @@ func CreateComent(request comentarios.CreateComentRequest) (comentarios.CreateCo
 		UserId:			 request.UserID,
 		CursoId:        request.CursoID,
 		Texto: request.Texto,
+		Valor: request.Valor,
 	}
 
 	if err := comentario.CreateComent(coment); err != nil {
@@ -38,6 +39,7 @@ func GetComentByCourse(id int)([]comentarios.GetComentByCourseResp, error){
 			UserID: coment.UserId,
 			Texto:    coment.Texto,
 			Fecha: coment.Fecha,
+			Valor: coment.Valor,
 		})
 	}
 	return response, nil
