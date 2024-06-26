@@ -3,6 +3,7 @@ package router
 import (
 	"backend/controllers/comentarios"
 	"backend/controllers/cursos"
+	"backend/controllers/files"
 	"backend/controllers/subscripciones"
 	"backend/controllers/users"
 
@@ -39,6 +40,12 @@ func SetupRouter(r *gin.Engine) *gin.Engine {
 	{
 		comentRoutes.POST("/coment", comentarios.CreateComent)
 		comentRoutes.GET("/:id", comentarios.GetComentsByCourse)
+	}
+
+	fileRoutes := r.Group("/files")
+	{
+		fileRoutes.POST("/upload", files.UploadFile)
+		fileRoutes.GET("/file/:curso_id", files.GetFile)
 	}
 
 	return r
