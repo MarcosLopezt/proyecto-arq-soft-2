@@ -3,8 +3,14 @@ package db
 import (
 	//"fmt"
 	"log"
-	//"os"
-	//"time"
+	// "os"
+	// "time"
+
+	// "backend/models/comentarios"
+	// "backend/models/cursos"
+	// "backend/models/files"
+	// "backend/models/subscripciones"
+	// "backend/models/users"
 
 	"gorm.io/driver/mysql"
 	"gorm.io/gorm"
@@ -34,6 +40,7 @@ func Connect() error {
 	return nil
 }
 
+
 // func Connect() error {
 // 	// Reemplaza usuario, contraseña, host, puerto y nombre_basedatos con tus propios valores
 // 	// DBName := "arq-soft"         //Nombre de la base de datos local de ustedes
@@ -44,7 +51,7 @@ func Connect() error {
 // 	dbHost := os.Getenv("DB_HOST")
 //     dbPort := os.Getenv("DB_PORT")
 //     dbUser := os.Getenv("DB_USER")
-//     dbPassword := os.Getenv("DB_PASSWORD")
+//     dbPassword := os.Getenv("DB_PASS")
 //     dbName := os.Getenv("DB_NAME")
 // 	// Conecta a la base de datos
 // 	//dsn := DBUser + ":" + DBPass + "@tcp(" + DBHost + ":3306)/" + DBName + "?charset=utf8mb4&parseTime=True&loc=Local"
@@ -72,6 +79,28 @@ func Connect() error {
 // 	}
 // 	// Asigna la instancia de la base de datos a la variable DB
 // 	DB = db
+
+// 	//userClient.Db = db
+// 	err = AutoMigrate()
+//     if err != nil {
+//         log.Println("Failed to perform auto migration")
+//         log.Fatal(err)
+//     } else {
+//         log.Println("Auto migration completed")
+//     }
+
+
+// 	return nil
+// }
+
+// func AutoMigrate() error {
+// 	err := DB.AutoMigrate(&users.User{}, &cursos.Course{}, &files.File{}, &comentarios.Comentario{}, &subscripciones.Subscription{})
+//     if err != nil {
+// 		log.Printf("No se creo la tabla")
+//         return err
+//     }
+
+// 	log.Println("Auto migration completed")
 
 // 	return nil
 // }

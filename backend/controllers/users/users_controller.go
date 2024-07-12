@@ -8,7 +8,10 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+	"gorm.io/gorm"
 )
+
+var Db *gorm.DB
 
 func LoginHandler(c *gin.Context) {
 	var loginRequest usersDomain.LoginRequest

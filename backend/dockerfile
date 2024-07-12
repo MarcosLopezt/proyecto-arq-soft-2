@@ -1,0 +1,43 @@
+
+# FROM golang:1.18 AS builder
+
+# WORKDIR /app
+
+# COPY go.mod go.sum ./
+
+# RUN go mod download
+# COPY . .
+
+
+# RUN go build -o main .
+
+# FROM alpine:latest
+
+# COPY --from=builder /app/main /app/main
+
+# EXPOSE 8080
+
+
+# CMD ["./main"]
+
+# Usa una imagen base oficial de Go
+FROM golang:1.18
+
+# Establece el directorio de trabajo dentro del contenedor
+WORKDIR /app
+
+# Copia los archivos go.mod y go.sum y descarga las dependencias
+COPY go.mod go.sum ./
+RUN go mod download
+
+# Copia el resto de los archivos de la aplicación
+COPY . .
+
+# Compila la aplicación
+RUN go build -o main .
+
+# Expone el puerto en el que la aplicación escuchará
+EXPOSE 8080
+
+# Comando por defecto para correr la aplicación
+CMD ["./main"]
