@@ -34,6 +34,6 @@ func main() {
 	// Ejecutamos el servidor en el puerto 8080
 	err = engine.Run(":8080")
 	if err != nil {
-		panic(err) // Manejo de errores si el servidor no puede iniciar
+		panic(err) 
 	}
 }

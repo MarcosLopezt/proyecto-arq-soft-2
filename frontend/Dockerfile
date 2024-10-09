@@ -24,5 +24,16 @@ COPY --from=build /app/build /usr/share/nginx/html
 # Expone el puerto en el que Nginx está sirviendo la aplicación
 EXPOSE 80
 
+# Agregar configuración de rutas para manejar rutas de React (SPA)
+RUN echo "server { \
+    listen 80; \
+    server_name localhost; \
+    root /usr/share/nginx/html; \
+    index index.html; \
+    location / { \
+        try_files \$uri /index.html; \
+    } \
+}" > /etc/nginx/conf.d/default.conf
+
 # Comando para correr Nginx en modo foreground
 CMD ["nginx", "-g", "daemon off;"]
