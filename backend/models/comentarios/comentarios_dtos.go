@@ -5,8 +5,8 @@ import (
 )
 
 type CreateComentRequest struct {
-	UserID  int    `json:"user_id"`
-	CursoID int    `json:"curso_id"`
+	UserID  uint    `json:"user_id"`
+	CursoID uint    `json:"curso_id"`
 	Valor	int 	`json:"valor"`
 	Texto   string `json:"texto"`
 }
@@ -20,9 +20,9 @@ type GetComentByCourseReq struct {
 }
 
 type GetComentByCourseResp struct {
-	UserID  int    `json:"user_id"`
+	UserID  uint    `json:"user_id"`
 	Valor	int 	`json:"valor"`
-	CursoID int    `json:"curso_id"`
+	CursoID uint    `json:"curso_id"`
 	Texto   string `json:"texto"`
 	Fecha  time.Time `json:"fecha"`
 }
