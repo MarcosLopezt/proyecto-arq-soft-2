@@ -3,7 +3,10 @@ package dao
 import (
 	"backend/db"
 	"backend/models/users"
+	"backend/services/cache"
+	"context"
 	"errors"
+	"fmt"
 
 	"gorm.io/gorm"
 )
@@ -26,23 +29,40 @@ func GetAllUsers() ([]users.User, error) {
 
 //traer user por id
 
-func GetUserByID(id uint) (*users.User, error) {
-    var user users.User
-    if err := db.DB.First(&user, id).Error; err != nil {
+func GetUserByID(ctx context.Context, cache cache.Cache, id uint) (*users.User, error) {
+    // primero intenta obtener el usuario de la cache
+    
+    user, err := cache.GetUserByID(ctx, fmt.Sprintf("%d", id))
+    if err != nil {
+        return &user, nil
+    }
+
+    var userDB users.User  // el user de mysql
+
+    if err := db.DB.First(&userDB, id).Error; err != nil {
         return nil, err
     }
+
+    _ , _= cache.Create(ctx, userDB)
+
     return &user, nil
 }
 
-func GetUserByEmail(email string) (*users.User, error) {
-    var user users.User
-    if err := db.DB.Where("email = ?", email).First(&user).Error; err != nil {
+func GetUserByEmail(ctx context.Context, cache cache.Cache, email string) (*users.User, error) {
+    user, err := cache.GetUserByEmail(ctx, email)
+    if err == nil {
+        fmt.Println("Usuario encontrado en la cache")
+        return &user, nil
+    }
+    var userDB users.User
+    if err := db.DB.Where("email = ?", email).First(&userDB).Error; err != nil {
         if errors.Is(err, gorm.ErrRecordNotFound) {
-            // No se encontró ningún usuario con el nombre de usuario proporcionado
+            fmt.Println("No se encontro el mail en la BD")
             return nil, nil
         }
-        // Otro error al consultar la base de datos
         return nil, err
     }
-    return &user, nil
+
+    cache.CreateUserByEmail(ctx, &userDB)
+    return &userDB, nil
 }

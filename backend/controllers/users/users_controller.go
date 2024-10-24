@@ -2,6 +2,7 @@ package users
 
 import (
 	usersDomain "backend/models/users"
+	"backend/services/cache"
 	usersService "backend/services/users_service"
 	"log"
 	"net/http"
@@ -13,14 +14,14 @@ import (
 
 var Db *gorm.DB
 
-func LoginHandler(c *gin.Context) {
+func LoginHandler(c *gin.Context, cache cache.Cache) {
 	var loginRequest usersDomain.LoginRequest
 	if err := c.ShouldBindJSON(&loginRequest); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
 
-	response, err := usersService.Login(loginRequest)
+	response, err := usersService.Login(cache, loginRequest)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
 		return
@@ -59,9 +60,9 @@ func CreateUser(c *gin.Context) {
 	c.JSON(http.StatusCreated, user)
 }
 
-func GetUserByID(c *gin.Context) {
+func GetUserByID(c *gin.Context, cache cache.Cache) {
 	id := c.Param("id")
-	user, err := usersService.GetUserByID(id)
+	user, err := usersService.GetUserByID(cache, id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return

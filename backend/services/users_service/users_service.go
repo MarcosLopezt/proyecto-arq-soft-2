@@ -4,6 +4,8 @@ import (
 	"backend/auth"
 	"backend/dao"
 	"backend/models/users"
+	"backend/services/cache"
+	"context"
 	"errors"
 	"log"
 
@@ -15,11 +17,15 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-func Login(request users.LoginRequest) (users.LoginResponse, error) {
-	user, err := dao.GetUserByEmail(request.Email)
+func Login(cache cache.Cache, request users.LoginRequest) (users.LoginResponse, error) {
+	user, err := dao.GetUserByEmail(context.Background(), cache ,request.Email)
 	if err != nil {
 		return users.LoginResponse{}, err
 	}
+
+	if user == nil {
+        return users.LoginResponse{}, errors.New("credenciales inválidas")
+    }
 
 	err = bcrypt.CompareHashAndPassword([]byte(user.PasswordHash), []byte(request.Password))
 	if err != nil {
@@ -35,7 +41,7 @@ func Login(request users.LoginRequest) (users.LoginResponse, error) {
 }
 
 func CreateUser(request users.CreateUserRequest) (users.UserResponse, error) {
-	// Hashing the password
+	
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.DefaultCost)
 	if err != nil {
 		log.Printf("Error hashing password: %v", err)
@@ -48,13 +54,13 @@ func CreateUser(request users.CreateUserRequest) (users.UserResponse, error) {
 		Role:         request.Role,
 	}
 
-	// Try to create the user in the database
+	
 	if err := dao.CreateUser(user); err != nil {
 		log.Printf("Error creating user: %v", err)
 		return users.UserResponse{}, err
 	}
 
-	// Successfully created user
+	
 	return users.UserResponse{
 		ID:    user.ID,
 		Email: user.Email,
@@ -62,12 +68,12 @@ func CreateUser(request users.CreateUserRequest) (users.UserResponse, error) {
 	}, nil
 }
 
-func GetUserByID(id string) (users.UserResponse, error) {
+func GetUserByID(cache cache.Cache, id string) (users.UserResponse, error) {
 	uid, err := strconv.ParseUint(id, 10, 32)
 	if err != nil {
 		return users.UserResponse{}, errors.New("ID inválido")
 	}
-	user, err := dao.GetUserByID(uint(uid))
+	user, err := dao.GetUserByID(context.Background(), cache, uint(uid))
 	if err != nil {
 		return users.UserResponse{}, err
 	}

@@ -6,17 +6,22 @@ import (
 	"backend/controllers/files"
 	"backend/controllers/subscripciones"
 	"backend/controllers/users"
+	"backend/services/cache"
 
 	"github.com/gin-gonic/gin"
 )
 
-func SetupRouter(r *gin.Engine) *gin.Engine {
+func SetupRouter(r *gin.Engine, cache cache.Cache) *gin.Engine {
 	// Grupo de rutas para usuarios
 	userRoutes := r.Group("/users")
 	{
-		userRoutes.POST("/login", users.LoginHandler)
+		userRoutes.POST("/login", func(c *gin.Context){
+			users.LoginHandler(c, cache)
+		})
 		userRoutes.POST("/register", users.CreateUser)
-		userRoutes.GET("/:id", users.GetUserByID)
+		userRoutes.GET("/:id", func(c *gin.Context){
+			users.GetUserByID(c, cache)
+		})
 	}
 
 	// Grupo de rutas para cursos
