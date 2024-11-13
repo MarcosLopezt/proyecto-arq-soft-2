@@ -70,7 +70,7 @@ function UpdateCourse() {
     const lengthInt = parseInt(curso.length, 10);
     //console.log(curso);
 
-    const response = await fetch(`http://localhost:8080/cursos/update`, {
+    const response = await fetch(`http://localhost:8083/cursos/update`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",

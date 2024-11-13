@@ -57,7 +57,7 @@ function Home() {
   const searchMyCourses = async () => {
     const userID = parseInt(localStorage.getItem("userID"), 10);
     const response = await fetch(
-      `http://localhost:8080/subscriptions/get/${userID}`,
+      `http://localhost:8084/subscriptions/get/${userID}`,
       {
         method: "GET",
         headers: {
@@ -79,7 +79,7 @@ function Home() {
 
   const getCourseById = async (courseID) => {
     const response = await fetch(
-      `http://localhost:8080/cursos/get/${courseID}`,
+      `http://localhost:8083/cursos/get/${courseID}`,
       {
         method: "GET",
         headers: {

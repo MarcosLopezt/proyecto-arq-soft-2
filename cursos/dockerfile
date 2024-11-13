@@ -1,0 +1,18 @@
+# Usa la imagen base de Go
+FROM golang:1.22
+
+# Crea y establece el directorio de trabajo
+WORKDIR /app
+
+# Copia los archivos del proyecto
+COPY . .
+
+# Instala dependencias y compila
+RUN go mod download
+RUN go build -o main .
+
+# Exponer el puerto (mapea al puerto 8083 en docker-compose)
+EXPOSE 8080
+
+# Comando de inicio
+CMD ["./main"]

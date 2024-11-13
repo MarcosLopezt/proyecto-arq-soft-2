@@ -15,7 +15,7 @@ const Files = () => {
 
   const getFiles = async () => {
     const response = await fetch(
-      `http://localhost:8080/files/file/${courseID}`,
+      `http://localhost:8084/files/file/${courseID}`,
       {
         method: "GET",
         headers: {

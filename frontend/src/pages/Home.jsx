@@ -74,8 +74,8 @@ function Home() {
   };
 
   const searchRecommended = async () => {
-    const name = "informatica"; //cursos recomendados a buscar
-    const response = await fetch(`http://localhost:8080/cursos/${name}`, {
+    const name = "all"; //cursos recomendados a buscar
+    const response = await fetch(`http://localhost:8083/cursos/${name}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",

@@ -45,7 +45,7 @@ export default function Register() {
     console.log(password);
     let role = "user";
     console.log(role);
-    const response = await fetch("http://localhost:8080/users/register", {
+    const response = await fetch("http://localhost:8082/users/register", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

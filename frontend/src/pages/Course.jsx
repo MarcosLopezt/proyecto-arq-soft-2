@@ -65,7 +65,7 @@ function Course() {
     //console.log(userID);
     //console.log(courseID);
 
-    const response = await fetch(`http://localhost:8080/subscriptions/sub`, {
+    const response = await fetch(`http://localhost:8084/subscriptions/sub`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
@@ -84,7 +84,7 @@ function Course() {
   };
 
   const handleDeleteButton = async () => {
-    const response = await fetch(`http://localhost:8080/cursos/delete`, {
+    const response = await fetch(`http://localhost:8083/cursos/delete`, {
       method: "DELETE",
       headers: {
         "Content-Type": "application/json",
@@ -112,7 +112,7 @@ function Course() {
   const isSubscribed = async () => {
     const userID = parseInt(localStorage.getItem("userID"), 10);
     const response = await fetch(
-      `http://localhost:8080/subscriptions/get/${userID}`,
+      `http://localhost:8084/subscriptions/get/${userID}`,
       {
         method: "GET",
         headers: {
@@ -144,7 +144,7 @@ function Course() {
     }
 
     //console.log(valueInt);
-    const response = await fetch(`http://localhost:8080/coments/coment`, {
+    const response = await fetch(`http://localhost:8084/coments/coment`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -73,7 +73,7 @@ function UploadFile() {
 
   const handleFileUpload = async () => {
     //console.log(base64String);
-    const response = await fetch(`http://localhost:8080/files/upload`, {
+    const response = await fetch(`http://localhost:8084/files/upload`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

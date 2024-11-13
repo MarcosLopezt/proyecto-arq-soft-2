@@ -61,7 +61,7 @@ function CreateCourse() {
     event.preventDefault();
     const lengthInt = parseInt(curso.length, 10);
 
-    const response = await fetch("http://localhost:8080/cursos/curso", {
+    const response = await fetch("http://localhost:8083/cursos/curso", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -16,7 +16,7 @@ const Comments = () => {
   const getComentarios = async () => {
     try {
       const response = await fetch(
-        `http://localhost:8080/coments/${courseID}`,
+        `http://localhost:8084/coments/${courseID}`,
         {
           method: "GET",
           headers: {
@@ -59,7 +59,7 @@ const Comments = () => {
         const usersData = await Promise.all(
           comentarios.map(async (comentario) => {
             const response = await fetch(
-              `http://localhost:8080/users/${comentario.user_id}`,
+              `http://localhost:8082/users/${comentario.user_id}`,
               {
                 method: "GET",
                 headers: {

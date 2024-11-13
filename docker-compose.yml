@@ -12,13 +12,13 @@ services:
     volumes:
       - mysql-data:/var/lib/mysql
 
-  backend:
+  backend_users:
     build:
-      context: ./backend
+      context: ./users
       dockerfile: Dockerfile
-    container_name: backend
+    container_name: backend_users
     ports:
-      - "8080:8080"
+      - "8082:8082"
     environment:
       DB_HOST: mysql
       DB_PORT: "3306"
@@ -28,6 +28,69 @@ services:
     depends_on:
       - mysql
 
+  backend_subscriptions:
+    build:
+      context: ./subscripciones
+      dockerfile: Dockerfile
+    container_name: backend_subscriptions
+    ports:
+      - "8084:8084"
+    environment:
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_USER: root
+      DB_PASS: marcoslopez1719$
+      DB_NAME: arq-soft
+    depends_on:
+      - mysql
+
+  backend_courses:
+    build:
+      context: ./cursos
+      dockerfile: Dockerfile
+    container_name: backend_courses
+    ports:
+      - "8083:8083"
+    environment:
+      DB_URI: mongodb://mongo:27017/arq-soft
+    depends_on:
+      - mongo
+
+  solr:
+    image: solr:8.11
+    container_name: solr
+    ports:
+      - "8983:8983"
+    volumes:
+      - solr-data:/var/solr
+      - "C:/Users/plopez/Documents/arquiSoft/proyecto-arq-soft-1/search_cursos/solr-config:/opt/solr/server/solr/configsets/custom_config"
+    environment:
+      SOLR_HEAP: 1g
+    command:
+      - "solr-foreground"
+
+  search_cursos:
+    build:
+      context: ./search_cursos
+      dockerfile: Dockerfile
+    container_name: search_cursos
+    ports:
+      - "8085:8085"
+    environment:
+      SOLR_HOST: solr:8983
+      RABBITMQ_HOST: rabbitmq # Variable de entorno para RabbitMQ
+    depends_on:
+      - solr
+      - rabbitmq # Dependencia de rabbitmq
+
+  mongo:
+    image: mongo
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+
   frontend:
     build:
       context: ./frontend
@@ -36,7 +99,146 @@ services:
     ports:
       - "3000:80"
     depends_on:
-      - backend
+      - backend_users
+      - backend_subscriptions
+      - backend_courses
+
+  rabbitmq:
+    image: rabbitmq:management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672" # Puerto de conexión principal de RabbitMQ
+      - "15672:15672" # Puerto de administración de RabbitMQ
+    environment:
+      RABBITMQ_DEFAULT_USER: root
+      RABBITMQ_DEFAULT_PASS: password
 
 volumes:
   mysql-data:
+  mongo-data:
+  solr-data:
+# version: "3.8"
+
+# services:
+#   mysql:
+#     image: mysql:5.7
+#     container_name: mysql
+#     ports:
+#       - "3307:3306"
+#     environment:
+#       MYSQL_DATABASE: arq-soft
+#       MYSQL_ROOT_PASSWORD: marcoslopez1719$
+#     volumes:
+#       - mysql-data:/var/lib/mysql
+
+#   backend:
+#     build:
+#       context: ./backend
+#       dockerfile: Dockerfile
+#     container_name: backend
+#     ports:
+#       - "8080:8080"
+#     environment:
+#       DB_HOST: mysql
+#       DB_PORT: "3306"
+#       DB_USER: root
+#       DB_PASS: marcoslopez1719$
+#       DB_NAME: arq-soft
+#     depends_on:
+#       - mysql
+
+#   frontend:
+#     build:
+#       context: ./frontend
+#       dockerfile: Dockerfile
+#     container_name: frontend
+#     ports:
+#       - "3000:80"
+#     depends_on:
+#       - backend
+
+# volumes:
+#   mysql-data:
+
+# ULTIMA VERSION
+# version: "3.8"
+
+# services:
+#   mysql:
+#     image: mysql:5.7
+#     container_name: mysql
+#     ports:
+#       - "3307:3306"
+#     environment:
+#       MYSQL_DATABASE: arq-soft
+#       MYSQL_ROOT_PASSWORD: marcoslopez1719$
+#     volumes:
+#       - mysql-data:/var/lib/mysql
+
+#   backend_users:
+#     build:
+#       context: ./users
+#       dockerfile: Dockerfile
+#     container_name: backend_users
+#     ports:
+#       - "8082:8080"
+#     environment:
+#       DB_HOST: mysql
+#       DB_PORT: "3306"
+#       DB_USER: root
+#       DB_PASS: marcoslopez1719$
+#       DB_NAME: arq-soft
+#     depends_on:
+#       - mysql
+
+#   backend_subscriptions:
+#     build:
+#       context: ./subscripciones
+#       dockerfile: Dockerfile
+#     container_name: backend_subscriptions
+#     ports:
+#       - "8084:8080"
+#     environment:
+#       DB_HOST: mysql
+#       DB_PORT: "3306"
+#       DB_USER: root
+#       DB_PASS: marcoslopez1719$
+#       DB_NAME: arq-soft
+#     depends_on:
+#       - mysql
+
+#   backend_courses:
+#     build:
+#       context: ./cursos
+#       dockerfile: Dockerfile
+#     container_name: backend_courses
+#     ports:
+#       - "8083:8080"
+#     environment:
+#       DB_URI: mongodb://mongo:27017/arq-soft
+#     depends_on:
+#       - mongo
+
+#   mongo:
+#     image: mongo
+#     container_name: mongo
+#     ports:
+#       - "27017:27017"
+#     volumes:
+#       - mongo-data:/data/db
+
+#   frontend:
+#     build:
+#       context: ./frontend
+#       dockerfile: Dockerfile
+#     container_name: frontend
+#     ports:
+#       - "3000:80"
+#     depends_on:
+#       - backend_users
+#       - backend_subscriptions
+#       - backend_courses
+
+# volumes:
+#   mysql-data:
+#   mongo-data:

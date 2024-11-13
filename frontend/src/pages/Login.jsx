@@ -46,7 +46,7 @@ export default function Login() {
     localStorage.removeItem("authToken");
   }
   const login = async (email, password) => {
-    const response = await fetch("http://localhost:8080/users/login", {
+    const response = await fetch("http://localhost:8082/users/login", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
