@@ -9,6 +9,7 @@ type CreateCourseRequest struct {
 	Category    string `json:"category"`
 	Description string `json:"description"`
 	Length      int    `json:"length"`
+	Cupos int `json:"cupos"`
 }
 
 type CreateCourseResponse struct {
@@ -25,6 +26,7 @@ type GetCourseByNameResponse struct {
 	Category    string `json:"category"`
 	Description string `json:"description"`
 	Length      int    `json:"length"`
+	Cupos 		int `json:"cupos"`
 }
 
 type GetCourseByIDResponse struct {
@@ -33,6 +35,8 @@ type GetCourseByIDResponse struct {
 	Category    string `json:"category"`
 	Description string `json:"description"`
 	Length      int    `json:"length"`
+	Cupos 		int `json:"cupos"`
+	Disponibles int  `json:"disponibles"`
 }
 
 type GetCourseByIDRequest struct {
@@ -45,6 +49,7 @@ type UpdateCourseRequest struct {
 	Category    string `json:"category"`
 	Description string `json:"description"`
 	Length      int    `json:"length"`
+	Cupos 		int `json:"cupos"`
 	LastUpdated  time.Time `gorm:"autoUpdateTime"`
 }
 
@@ -54,6 +59,7 @@ type UpdateCourseResponse struct {
 	Category    string `json:"category"`
 	Description string `json:"description"`
 	Length      int    `json:"length"`
+	Cupos 		int `json:"cupos"`
 }
 
 type DeleteCourseRequest struct {

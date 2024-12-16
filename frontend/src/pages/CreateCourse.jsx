@@ -46,6 +46,7 @@ function CreateCourse() {
     course_name: "",
     category: "",
     description: "",
+    cupos: "",
     length: "",
   });
 
@@ -60,13 +61,14 @@ function CreateCourse() {
   const funcOnSubmit = async (event) => {
     event.preventDefault();
     const lengthInt = parseInt(curso.length, 10);
+    const cuposInt = parseInt(curso.cupos, 10);
 
     const response = await fetch("http://localhost:8083/cursos/curso", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ ...curso, length: lengthInt }),
+      body: JSON.stringify({ ...curso, cupos: cuposInt, length: lengthInt }),
     });
 
     if (response.ok) {
@@ -185,6 +187,17 @@ function CreateCourse() {
                 name="length"
                 type="number"
                 value={curso.length}
+                onChange={funcOnChange}
+                fullWidth
+                required
+              />
+            </Grid>
+            <Grid item xs={12}>
+              <TextField
+                label="Maximo de cupos"
+                name="cupos"
+                type="number"
+                value={curso.cupos}
                 onChange={funcOnChange}
                 fullWidth
                 required

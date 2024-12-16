@@ -39,7 +39,7 @@ func GetCourseByName(c *gin.Context, mongoClient *mongo.Client) {
 
 func GetCourseByID(c *gin.Context, mongoClient *mongo.Client) {
 	id := c.Param("id")
-	course, err := cursosService.GetCourseByID(mongoClient, id)
+	course, err := cursosService.GetCourseByID1(mongoClient, id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return

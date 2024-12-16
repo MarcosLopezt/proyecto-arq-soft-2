@@ -118,7 +118,7 @@ function Home() {
   });
 
   const search = async (name) => {
-    const response = await fetch(`http://localhost:8080/cursos/${name}`, {
+    const response = await fetch(`http://localhost:8083/cursos/${name}`, {
       method: "GET",
       headers: {
         "Content-Type": "application/json",

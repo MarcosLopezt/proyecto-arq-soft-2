@@ -17,13 +17,15 @@ func main(){
 		log.Fatalf("Error al conectar con la base de datos: %v", err)
 	}
 	 // Inicializamos la caché
-	 cacheConfig := cache.CacheConfig{
-        MaxSize:      1024 * 1024 * 10, 
-        ItemsToPrune: 100,
-        Duration:     10 * time.Minute,  // Duración de la caché
-    }
-    cache := cache.NewCache(cacheConfig)
-
+	 config := cache.MemcachedConfig{
+		Host:     "memcached",
+		Port:     "11211",
+		Duration: 10 * time.Minute,
+	}
+    cacheInstance, err := cache.NewCache(config)
+	if err != nil {
+		log.Fatalf("Error al inicializar la caché: %v", err)
+	}
 	engine := gin.Default()
 
 	engine.Use(cors.New(cors.Config{
@@ -34,7 +36,7 @@ func main(){
         MaxAge:           12 * time.Hour,
     }))
 
-	router.SetupRouter(engine, cache)
+	router.SetupRouter(engine, cacheInstance)
 
 	err = engine.Run(":8082")
     if err != nil {

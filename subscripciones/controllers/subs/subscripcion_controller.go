@@ -39,3 +39,17 @@ func GetSubByUserId(c *gin.Context){
 	c.JSON(http.StatusOK, subs)
 }
 
+func GetSubByCursoId(c *gin.Context){
+	cursoId := c.Param("curso_id")
+
+	count, err := subsService.GetSubByCursoId(cursoId)
+	if err != nil{
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+	
+	c.JSON(http.StatusOK, gin.H{
+		"curso_id":    cursoId,
+		"subs_count":  count,
+	})
+}

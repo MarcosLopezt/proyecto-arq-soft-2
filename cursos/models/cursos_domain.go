@@ -9,8 +9,13 @@ type Course struct {
     CourseName  string    `bson:"course_name"`
     Category    string    `bson:"category"`
     Length      int       `bson:"length"`
+    Cupos      int       `bson:"cupos"`
     Description string    `bson:"description"`
     CreatedAt   time.Time `bson:"created_at"`  
     UpdatedAt   time.Time `bson:"updated_at"`  
 }
 
+type CursoNew struct {
+	Operation string `json:"operation"`
+	CursoID   uint   `json:"course_id"`
+}

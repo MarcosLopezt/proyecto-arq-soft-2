@@ -45,6 +45,8 @@ function Course() {
   const [snackComent, setSnackComent] = useState(false);
   const [comentErr, setComentErr] = useState(false);
   const [value, setValue] = useState(0);
+  const [disp, setDisp] = useState(0);
+  const [disponibles, setDisponibles] = useState(true);
 
   const handleLogoutClick = () => {
     setLogoutOpen(true);
@@ -58,6 +60,33 @@ function Course() {
     document.cookie =
       "session_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT;";
     navigate("/");
+  };
+
+  useEffect(() => {
+    if (disponibles) {
+      searchDisp();
+    }
+  }, [disponibles]);
+
+  const searchDisp = async () => {
+    const response = await fetch(
+      `http://localhost:8083/cursos/get/${courseID}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (response.status === 200) {
+      const data = await response.json();
+      console.log("RESPUESTA", data);
+      setDisp(data.disponibles);
+      //console.log(courses[0]);
+    } else {
+      console.log("No existe el curso");
+    }
   };
 
   const handleSubscription = async () => {
@@ -94,7 +123,7 @@ function Course() {
 
     console.log(response);
 
-    if (response.status === 201) {
+    if (response.status === 200) {
       const data = await response.json();
       console.log(data);
       navigate("/home");
@@ -285,13 +314,22 @@ function Course() {
           >
             {descripcion}
           </Typography>
+          <Typography>Disponibilidad: {disp}</Typography>
           <Button
             variant="contained"
             className="button-subscribe"
             onClick={subscripto ? handleSubscribed : handleSubscription}
-            sx={{ marginTop: "20px", backgroundColor: "rgb(49, 45, 45)" }}
+            disabled={disp === 0}
+            sx={{
+              marginTop: "20px",
+              backgroundColor: disp === 0 ? "gray" : "rgb(49, 45, 45)",
+            }}
           >
-            {subscripto ? "Inscripto" : "Inscribirme ahora"}
+            {disp === 0
+              ? "No hay disponibilidad"
+              : subscripto
+              ? "Inscripto"
+              : "Inscribirme ahora"}
           </Button>
 
           {userRole === "admin" && (

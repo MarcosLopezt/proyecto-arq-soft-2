@@ -14,14 +14,26 @@ func CreateSubs(request subscripciones.CreateSubsRequest) (subscripciones.Create
 		UserID:			 request.UserID,
 		CourseID:        request.CourseID,
 	}
+	
+	// cuposResp, err:= dao.GetCupos(request.CourseID)
+	// if err != nil {
+	// 	log.Printf("Error getting cupos: %v", err)
+	// 	return subscripciones.CreateSubsResponse{}, err
+	// }
 
-	// Try to create the user in the database
+	// if cuposResp.Cupos <= 0 {
+	// 	log.Printf("No hay cupos disponibles para el curso %d", request.CourseID)
+	// 	return subscripciones.CreateSubsResponse{
+	// 		Message: fmt.Sprintf("No se puede suscribir. El curso %d no tiene cupos disponibles.", request.CourseID),
+	// 	}, nil
+	// }
+
 	if err := dao.CreateSubs(sub); err != nil {
 		log.Printf("Error creating sub: %v", err)
 		return subscripciones.CreateSubsResponse{}, err
 	}
 
-	// Successfully created user
+	
 	return subscripciones.CreateSubsResponse{
 		Message: "Subscripcion realizada con exito!",
 	}, nil
@@ -49,4 +61,27 @@ func GetSubByUserId(id string) ([]subscripciones.GetSubByUserResponse, error){
 
 	return response, nil
 }
+
+func GetSubByCursoId(id string)(int, error){
+	uid, err := strconv.ParseUint(id, 10, 32)
+	if err != nil{
+		return 0, errors.New("ID invalido")
+	}
+
+	subs, err := dao.GetSubByCursoId(uint(uid))
+	if err != nil {
+		return 0, err
+	}
+
+
+	return len(subs), nil
+}
+
+// func CountSubsByCourse(id string)(int, error){
+// 	id, err := strconv.ParseInt(id,10,64)
+// 	if err != nil{
+// 		return 0, errors.New("ID invalido")
+// 	}
+// 	subs, err := dao.CountSubsByCourse()
+// }
 

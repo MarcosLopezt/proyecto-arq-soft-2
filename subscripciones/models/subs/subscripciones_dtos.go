@@ -18,3 +18,11 @@ type GetSubByUserResponse struct {
 	UserID   uint `json:"user_id"`
 	CourseID uint `json:"course_id"`
 }
+
+type GetCuposReq struct {
+	CourseID uint `json:"course_id"`
+}
+
+type GetCuposResp struct {
+	Cupos int `json:"cupos"`
+}

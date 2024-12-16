@@ -3,13 +3,15 @@ package dao
 import (
 	"context"
 	models "cursos/models"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"log"
+	"net/http"
 	"strconv"
 
 	"go.mongodb.org/mongo-driver/bson"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	//"go.mongodb.org/mongo-driver/bson/primitive"
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
@@ -135,6 +137,7 @@ func (dao *MongoCourseDAO) UpdateCourse(ctx context.Context, request *models.Upd
 			"category":     request.Category,
 			"description":  request.Description,
 			"length":       request.Length,
+			"cupos": request.Cupos,
 			"last_updated": request.LastUpdated,
 		},
 	}
@@ -150,6 +153,7 @@ func (dao *MongoCourseDAO) UpdateCourse(ctx context.Context, request *models.Upd
 		Category:    request.Category,
 		Description: request.Description,
 		Length:      request.Length,
+		Cupos: request.Cupos,
 	}
 	return response, nil
 }
@@ -158,15 +162,16 @@ func (dao *MongoCourseDAO) UpdateCourse(ctx context.Context, request *models.Upd
 func (dao *MongoCourseDAO) DeleteCourse(ctx context.Context, request *models.DeleteCourseRequest) (*models.DeleteCourseResponse, error) {
 	collection := dao.client.Database(dao.database).Collection(dao.collection)
 
-	idString := fmt.Sprintf("%d", request.ID)
+	// idString := fmt.Sprintf("%d", request.ID)
 
-	objectID, err := primitive.ObjectIDFromHex(idString)
-	if err != nil {
-		return nil, fmt.Errorf("error converting id to object ID: %w", err)
-	}
+	// objectID, err := primitive.ObjectIDFromHex(idString)
 
-	_, err = collection.DeleteOne(ctx, bson.M{"_id": objectID})
-	if err != nil {
+	// if err != nil {
+	// 	return nil, fmt.Errorf("error converting id to object ID: %w", err)
+	// }
+
+	cursoIdInt := int(request.ID)
+	if _,err := collection.DeleteOne(ctx, bson.M{"_id": cursoIdInt}); err != nil{
 		return nil, fmt.Errorf("error deleting course: %w", err)
 	}
 
@@ -178,4 +183,58 @@ func (dao *MongoCourseDAO) DeleteCourse(ctx context.Context, request *models.Del
 }
 
 
+func (dao *MongoCourseDAO) CalcularDisponibilidad(ctx context.Context, cursoID uint) (int, error) {
+	collection := dao.client.Database(dao.database).Collection(dao.collection)
+	cursoIDInt := int(cursoID)
+
+	var course models.Course
+	if err := collection.FindOne(ctx, bson.M{"_id": cursoIDInt}).Decode(&course); err != nil {
+		if errors.Is(err, mongo.ErrNoDocuments) {
+			return 0, fmt.Errorf("curso no encontrado")
+		}
+		return 0, fmt.Errorf("error buscando el curso: %w", err)
+	}
+
+	cuposIniciales := course.Cupos
+
+	// Calcular el número de inscripciones realizadas
+	inscripcionesCount, err := obtenerCantidadInscripciones(cursoID)
+	if err != nil {
+		return 0, fmt.Errorf("error obteniendo inscripciones desde la API: %w", err)
+	}
+	fmt.Println("CUPOS INICIALES: ", cuposIniciales)
+	fmt.Println("CANTIDAD INSCRIP: ", inscripcionesCount)
+
+	// Calcular disponibilidad restante
+	disponibilidad := cuposIniciales - int(inscripcionesCount)
+	if disponibilidad < 0 {
+		disponibilidad = 0 // Evitar valores negativos
+	}
+	fmt.Println("DISPONIBILIDAD CUPOS: ", disponibilidad)
+	return disponibilidad, nil
+}
+
+func obtenerCantidadInscripciones(cursoID uint) (int, error) {
+	// Construir la URL de la API
+	apiURL := fmt.Sprintf("http://backend_subscriptions:8084/subscriptions/get/curso/%d", cursoID)
+
+	resp, err := http.Get(apiURL)
+	if err != nil {
+		return 0, fmt.Errorf("error realizando la solicitud a la API: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return 0, fmt.Errorf("la API devolvió un error: %s", resp.Status)
+	}
+
+	var response struct {
+		SubsCount int `json:"subs_count"`
+	}
+	if err := json.NewDecoder(resp.Body).Decode(&response); err != nil {
+		return 0, fmt.Errorf("error decodificando la respuesta de la API: %w", err)
+	}
+
+	return response.SubsCount, nil
+}
 

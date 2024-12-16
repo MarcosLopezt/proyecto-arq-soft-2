@@ -2,8 +2,9 @@ package router
 
 import (
 	"subscripciones/controllers/comentarios"
-	subs "subscripciones/controllers/subs"
 	"subscripciones/controllers/files"
+	subs "subscripciones/controllers/subs"
+
 	"github.com/gin-gonic/gin"
 )
 
@@ -12,6 +13,7 @@ func SetupRouter(r *gin.Engine) *gin.Engine {
 	{
 	 	subsRoutes.POST("/sub", subs.CreateSubs)
 	 	subsRoutes.GET("/get/:user_id", subs.GetSubByUserId)
+		subsRoutes.GET("/get/curso/:curso_id", subs.GetSubByCursoId)
 	}
 
 	comentRoutes := r.Group("/coments")
