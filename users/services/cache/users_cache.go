@@ -29,7 +29,6 @@ type Cache struct {
 
 // NewCache inicializa una conexión con el servidor Memcached y verifica la conexión inicial
 func NewCache(config MemcachedConfig) (Cache, error) {
-	// Construir la dirección del servidor (host:port)
 	address := fmt.Sprintf("%s:%s", config.Host, config.Port)
 
 	// Crear el cliente Memcached

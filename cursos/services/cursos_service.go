@@ -4,8 +4,12 @@ import (
 	"context"
 	"cursos/dao"
 	cursos "cursos/models"
+	"encoding/json"
 	"errors"
+	"fmt"
+	"io/ioutil"
 	"log"
+	"net/http"
 
 	//"sync"
 	"time"
@@ -16,7 +20,23 @@ import (
 // Variable de contexto para MongoDB
 var ctx = context.TODO()
 
+type UserResponse struct {
+	ID    int    `json:"id"`
+	Email string `json:"email"`
+	Role  string `json:"role"`
+}
+
 func CreateCourse(mongoClient *mongo.Client, request cursos.CreateCourseRequest) (cursos.CreateCourseResponse, error) {
+	userId := request.UserID
+	role, err := GetRole(userId)
+	if err != nil {
+		log.Printf("Error al obtener el rol del usuario: %v", err)
+		return cursos.CreateCourseResponse{}, err
+	}
+
+	if role != "admin" {
+		return cursos.CreateCourseResponse{}, errors.New("permiso denegado: el usuario no tiene el rol adecuado")
+	}
 	courseDAO := dao.NewMongoCourseDAO(mongoClient, "arqui_soft", "courses")
 
 	curso := &cursos.Course{
@@ -151,6 +171,16 @@ func GetCourseByID1(mongoClient *mongo.Client, id string) (cursos.GetCourseByIDR
 
 
 func UpdateCourse(mongoClient *mongo.Client, request cursos.UpdateCourseRequest) (cursos.UpdateCourseResponse, error) {
+	userId := request.UserID
+	role, err := GetRole(userId)
+	if err != nil {
+		log.Printf("Error al obtener el rol del usuario: %v", err)
+		return cursos.UpdateCourseResponse{}, err
+	}
+
+	if role != "admin" {
+		return cursos.UpdateCourseResponse{}, errors.New("permiso denegado: el usuario no tiene el rol adecuado")
+	}
 	courseDAO := dao.NewMongoCourseDAO(mongoClient, "arqui_soft", "courses")
 	updatedCourse, err := courseDAO.UpdateCourse(ctx, &request)
 	if err != nil {
@@ -179,4 +209,34 @@ func DeleteCourse(mongoClient *mongo.Client, request cursos.DeleteCourseRequest)
 	return cursos.DeleteCourseResponse{
 		Message: deleteResponse.Message,
 	}, nil
+}
+
+func GetRole(userId uint) (string, error) {
+	apiURL := fmt.Sprintf("http://backend_users:8082/users/%d", userId)
+
+	// Hacer la solicitud HTTP al endpoint
+	resp, err := http.Get(apiURL)
+	if err != nil {
+		return "", fmt.Errorf("error al hacer la solicitud: %v", err)
+	}
+	defer resp.Body.Close()
+
+	// Verificar si la respuesta es exitosa
+	if resp.StatusCode != http.StatusOK {
+		return "", fmt.Errorf("respuesta no exitosa, código de estado: %d", resp.StatusCode)
+	}
+
+	body, err := ioutil.ReadAll(resp.Body)
+	if err != nil {
+		return "", fmt.Errorf("error al leer el cuerpo de la respuesta: %v", err)
+	}
+
+	// Deserializar la respuesta JSON
+	var userResponse UserResponse
+	err = json.Unmarshal(body, &userResponse)
+	if err != nil {
+		return "", fmt.Errorf("error al deserializar la respuesta JSON: %v", err)
+	}
+
+	return userResponse.Role, nil
 }

@@ -15,7 +15,6 @@ func CreateCourse(c *gin.Context, mongoClient *mongo.Client) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
 	}
-
 	course, err := cursosService.CreateCourse(mongoClient, createCourseRequest)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})

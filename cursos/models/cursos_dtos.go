@@ -5,6 +5,7 @@ import (
 )
 
 type CreateCourseRequest struct {
+	UserID uint `json:"user_id"`
 	CourseName  string `json:"course_name"`
 	Category    string `json:"category"`
 	Description string `json:"description"`
@@ -44,6 +45,7 @@ type GetCourseByIDRequest struct {
 }
 
 type UpdateCourseRequest struct {
+	UserID uint `json:"user_id"`
 	ID          uint   `json:"ID"`
 	CourseName  string `json:"course_name"`
 	Category    string `json:"category"`

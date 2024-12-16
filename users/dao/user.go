@@ -33,19 +33,24 @@ func GetUserByID(ctx context.Context, cache cache.Cache, id uint) (*users.User, 
     // primero intenta obtener el usuario de la cache
     
     user, err := cache.GetUserByID(ctx, fmt.Sprintf("%d", id))
-    if err != nil {
+    if err == nil {
+        fmt.Println("Usuario encontrado en la cache")
         return &user, nil
     }
 
     var userDB users.User  // el user de mysql
 
-    if err := db.DB.First(&userDB, id).Error; err != nil {
+    if err := db.DB.Where("id = ?", id).First(&userDB).Error; err != nil {
+        if errors.Is(err, gorm.ErrRecordNotFound) {
+            fmt.Println("No se encontro el id en la BD")
+            return nil, nil
+        }
         return nil, err
     }
 
     _ , _= cache.Create(ctx, userDB)
 
-    return &user, nil
+    return &userDB, nil
 }
 
 func GetUserByEmail(ctx context.Context, cache cache.Cache, email string) (*users.User, error) {
