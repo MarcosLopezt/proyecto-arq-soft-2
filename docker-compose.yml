@@ -74,7 +74,8 @@ services:
       - "8983:8983"
     volumes:
       - solr-data:/var/solr
-      - "C:/Users/plopez/Documents/arquiSoft/proyecto-arq-soft-1/search_cursos/solr-config:/opt/solr/server/solr/configsets/custom_config"
+      - "C:/Users/plopez/Documents/arquiSoft/proyecto-arq-soft-1/search_cursos/solr-config/conf:/var/solr/data/configsets/custom_config"
+
     environment:
       SOLR_HEAP: 1g
     command:

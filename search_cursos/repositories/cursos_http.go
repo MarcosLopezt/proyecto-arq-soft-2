@@ -16,6 +16,7 @@ type HTTPConfig struct {
 
 type HTTP struct {
 	baseURL func(courseID string) string
+	config HTTPConfig
 }
 
 func NewHTTP(config HTTPConfig) HTTP {
@@ -50,4 +51,22 @@ func (repository HTTP) GetCursoByID(ctx context.Context, id string) (cursosDomai
 	}
 
 	return course, nil
+}
+
+func (repo HTTP) GetAllCursos(ctx context.Context) ([]cursosDomain.Curso, error) {
+	url := fmt.Sprintf("http://%s:%s/cursos/all", repo.config.Host, repo.config.Port) // Usamos repo.config para acceder a Host y Port
+	fmt.Println("URL get all cursos: ", url)
+
+	resp, err := http.Get(url)
+	if err != nil {
+		return nil, fmt.Errorf("error al obtener cursos: %w", err)
+	}
+	defer resp.Body.Close()
+
+	var cursos []cursosDomain.Curso
+	if err := json.NewDecoder(resp.Body).Decode(&cursos); err != nil {
+		return nil, fmt.Errorf("error al decodificar los cursos: %w", err)
+	}
+
+	return cursos, nil
 }

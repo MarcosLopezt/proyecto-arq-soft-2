@@ -67,38 +67,47 @@ func (searchEngine Solr) Index(ctx context.Context, curso cursos.Curso) (string,
 }
 
 func (searchEngine Solr) Search(ctx context.Context, query string, limit int, offset int) ([]cursos.Curso, error) {
+    // Crear la consulta Solr como un string formateado correctamente
+    solrQueryString := fmt.Sprintf("q=%s&rows=%d&start=%d&wt=json", query, limit, offset)
 
-	//solrQuery := fmt.Sprintf("q=course_name:%s&rows=%d&start=%d", query, limit, offset)
-	//solrQuery := fmt.Sprintf("/select?q=course_name:%s&rows=%d&start=%d", query, limit, offset)
-	//solrQuery := fmt.Sprintf("/solr/%s/select?q=%s&rows=%d&start=%d", searchEngine.Collection, query, limit, offset)
-	solrQuery := fmt.Sprintf("/solr/%s/select?indent=true&q.op=OR&q=*:*&rows=%d&start=%d", searchEngine.Collection, limit, offset)
+    // Crear la query usando el string formateado
+    solrQuery := solr.NewQuery(solrQueryString)
 
+    // Log para depuración
+    fmt.Println("QUERY: ", solrQuery)
 
-	
-	fmt.Println("QUERY: ",solrQuery)
-	resp, err := searchEngine.Client.Query(ctx, searchEngine.Collection, solr.NewQuery(solrQuery))
-	fmt.Println("ENGINE CLIENT: ", searchEngine.Client)
-	if err != nil {
-		return nil, fmt.Errorf("error en consulta de búsqueda: %w", err)
-	}
-	if resp.Error != nil {
-		return nil, fmt.Errorf("error en respuesta de búsqueda: %v", resp.Error)
-	}
+    // Ejecutar la consulta utilizando el cliente Solr
+    resp, err := searchEngine.Client.Query(ctx, searchEngine.Collection, solrQuery)
+    fmt.Println("RESP: ", resp)
 
-	var cursosList []cursos.Curso
-	for _, doc := range resp.Response.Documents {
-		curso := cursos.Curso{
-			ID:          uint(getIntField(doc, "id")),  // Convertir el ID a uint
-			CourseName:  getStringField(doc, "course_name"),
-			Description: getStringField(doc, "description"),
-			Category:    getStringField(doc, "category"),
-			Length:      getIntField(doc, "length"),
-		}
-		cursosList = append(cursosList, curso)
-	}
+    if err != nil {
+        return nil, fmt.Errorf("error en consulta de búsqueda: %w", err)
+    }
+    if resp.Error != nil {
+        return nil, fmt.Errorf("error en respuesta de búsqueda: %v", resp.Error)
+    }
 
-	return cursosList, nil
+    // Verificar si hay resultados
+    if resp.Response.NumFound == 0 {
+        return []cursos.Curso{}, nil
+    }
+
+    // Mapear los resultados de Solr a una lista de `cursos.Curso`
+    var cursosList []cursos.Curso
+    for _, doc := range resp.Response.Documents {
+        curso := cursos.Curso{
+            ID:          uint(getIntField(doc, "id")),
+            CourseName:  getStringField(doc, "course_name"),
+            Description: getStringField(doc, "description"),
+            Category:    getStringField(doc, "category"),
+            Length:      getIntField(doc, "length"),
+        }
+        cursosList = append(cursosList, curso)
+    }
+
+    return cursosList, nil
 }
+
 
 func getStringField(doc map[string]interface{}, field string) string {
 	if val, ok := doc[field].(string); ok {

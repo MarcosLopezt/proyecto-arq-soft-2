@@ -3,6 +3,7 @@ package services
 import (
 	"context"
 	"fmt"
+	"log"
 	cursosDAO "search_cursos/dao"
 	cursosDomain "search_cursos/domain"
 	"strconv"
@@ -17,23 +18,54 @@ type Repository interface {
 
 type ExternalRepository interface {
 	GetCursoByID(ctx context.Context, id string) (cursosDomain.Curso, error)
+	GetAllCursos(ctx context.Context) ([]cursosDomain.Curso, error)
 }
 
 type Service struct {
-	repository Repository
+	Repository Repository
 	cursosAPI  ExternalRepository
 }
 
 func NewService(repository Repository, cursosAPI ExternalRepository) Service {
 	return Service{
-		repository: repository,
+		Repository: repository,
 		cursosAPI:  cursosAPI,
 	}
 }
 
+// Metodo para inicializar Solr con todos los cursos de la API
+func (service Service) InitializeSolr(ctx context.Context) error {
+	// Obtener todos los cursos desde la API
+	cursos, err := service.cursosAPI.GetAllCursos(ctx)
+	if err != nil {
+		return fmt.Errorf("error al obtener cursos de la API: %w", err)
+	}
+
+	// Indexar los cursos en Solr
+	for _, curso := range cursos {
+		cursoDAO := cursosDAO.Curso{
+			ID:          curso.ID,
+			CourseName:  curso.CourseName,
+			Category:    curso.Category,
+			Length:      curso.Length,
+			Description: curso.Description,
+		}
+
+		// Indexar curso en Solr
+		if _, err := service.Repository.Index(ctx, cursoDAO); err != nil {
+			log.Printf("Error indexando curso: %v", err)
+		} else {
+			log.Printf("Curso indexado correctamente: %v", curso.ID)
+		}
+	}
+
+	return nil
+}
+
+
 func (service Service) Search(ctx context.Context, query string, offset int, limit int) ([]cursosDomain.Curso, error) {
 	// Llamar al método Search del repositorio
-	cursosDAOList, err := service.repository.Search(ctx, query, limit, offset)
+	cursosDAOList, err := service.Repository.Search(ctx, query, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("error buscando cursos: %w", err)
 	}
@@ -45,7 +77,7 @@ func (service Service) Search(ctx context.Context, query string, offset int, lim
 			ID:          curso.ID,
 			CourseName:  curso.CourseName,
 			Description: curso.Description,
-			Category:    curso.Category,
+			Category:    curso.Category,	
 			Length:      curso.Length,
 		})
 	}
@@ -74,14 +106,14 @@ func (service Service) HandleCursoNew(cursoNew cursosDomain.CursoNew){
 
         // Si la operación es CREATE, indexamos el curso en Solr
         if cursoNew.Operation == "CREATE" {
-            if _, err := service.repository.Index(context.Background(), cursoDAO); err != nil {
+            if _, err := service.Repository.Index(context.Background(), cursoDAO); err != nil {
 				fmt.Printf("Error indexing hotel (%s): %v\n", idString, err)
                 return 
             }else{
 				fmt.Println("Curso indexed successfully:", cursoNew.CursoID)
 			}
         } else { // Si la operación es UPDATE, actualizamos el curso en Solr
-            if err := service.repository.Update(context.Background(), cursoDAO); err != nil {
+            if err := service.Repository.Update(context.Background(), cursoDAO); err != nil {
 				fmt.Printf("Error updating hotel (%s): %v\n", idString, err)
                 return 
             }else{
@@ -90,7 +122,7 @@ func (service Service) HandleCursoNew(cursoNew cursosDomain.CursoNew){
         }
 
     case "DELETE":
-        if err := service.repository.Delete(context.Background(), idString); err != nil {
+        if err := service.Repository.Delete(context.Background(), idString); err != nil {
 			fmt.Printf("Error deleting curso (%s): %v\n", idString, err)
             return 
         }else{
