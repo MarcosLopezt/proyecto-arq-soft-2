@@ -71,6 +71,17 @@ func GetUserByID(c *gin.Context, cache cache.Cache) {
 	c.JSON(http.StatusOK, user)
 }
 
+func GetInstances(c *gin.Context){
+	instances, err := usersService.GetInstances()
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(200, gin.H{
+		"instances": instances,
+	})
+}
+
 /*
 func GetAllUsers(c *gin.Context) {
 	users, err := usersService.GetAllUsers()

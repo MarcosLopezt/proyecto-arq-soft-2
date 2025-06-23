@@ -1,9 +1,13 @@
 package users_service
 
 import (
+	"bytes"
 	"context"
 	"errors"
+	"fmt"
 	"log"
+	"os/exec"
+	"strings"
 	"users/auth"
 	"users/dao"
 	users "users/models"
@@ -84,6 +88,30 @@ func GetUserByID(cache cache.Cache, id string) (users.UserResponse, error) {
 		Role:  user.Role,
 	}, nil
 }
+
+func GetInstances() ([]users.MicroserviceInstance, error) {
+	// Ejecutar el comando "docker ps" en el sistema
+	cmd := exec.Command("docker", "ps", "--format", "{{.Names}}") 
+	var out bytes.Buffer
+	cmd.Stdout = &out
+	err := cmd.Run()
+	if err != nil {
+		return nil, fmt.Errorf("Error al ejecutar docker ps: %v", err)
+	}
+
+	names := strings.Split(out.String(), "\n")
+	var instances []users.MicroserviceInstance
+	for _, name := range names {
+		if name != "" {
+			instances = append(instances, users.MicroserviceInstance{
+				Name: name,
+			})
+		}
+	}
+
+	return instances, nil
+}
+
 
 /*
 

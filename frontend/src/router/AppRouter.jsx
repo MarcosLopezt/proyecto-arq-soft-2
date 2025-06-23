@@ -9,6 +9,7 @@ import Course from "../pages/Course";
 import MyCourses from "../pages/MyCourses";
 import UpdateCourse from "../pages/UpdateCourse";
 import UploadFile from "../pages/UploadFiles";
+import Microservicios from "../pages/Microservicios";
 
 function App() {
   return (
@@ -22,6 +23,7 @@ function App() {
         <Route path="/mycourses" element={<MyCourses />} />
         <Route path="/update" element={<UpdateCourse />} />
         <Route path="/upload" element={<UploadFile />} />
+        <Route path="/microservicios" element={<Microservicios />}></Route>
       </Route>
     </Routes>
   );

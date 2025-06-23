@@ -43,31 +43,22 @@ func NewRabbit(config RabbitConfig) (*Rabbit, error) {
 	}, nil
 }
 
-func (r *Rabbit) StartConsumer(handler func(cursos.CursoNew)) error {
-	messages, err := r.channel.Consume(
-		r.queue.Name,
-		"",
-		true,  
-		false, 
-		false, 
-		false, 
-		nil,   
-	)
+func (queue Rabbit) Publish(cursoNew cursos.CursoNew) error {
+	bytes, err := json.Marshal(cursoNew)
 	if err != nil {
-		return fmt.Errorf("error al registrar consumidor: %w", err)
+		return fmt.Errorf("error marshaling Rabbit hotelNew: %w", err)
 	}
-
-	go func() {
-		for msg := range messages {
-			var cursoUpdate cursos.CursoNew
-			if err := json.Unmarshal(msg.Body, &cursoUpdate); err != nil {
-				log.Printf("Error al deserializar mensaje: %v", err)
-				continue
-			}
-			handler(cursoUpdate)
-		}
-	}()
-
+	if err := queue.channel.Publish(
+		"",
+		queue.queue.Name,
+		false,
+		false,
+		amqp.Publishing{
+			ContentType: "application/json",
+			Body:        bytes,
+		}); err != nil {
+		return fmt.Errorf("error publishing to Rabbit: %w", err)
+	}
 	return nil
 }
 

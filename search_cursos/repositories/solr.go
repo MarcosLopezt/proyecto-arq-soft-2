@@ -5,7 +5,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"net/http"
 	cursos "search_cursos/dao"
+	"strconv"
 
 	"github.com/stevenferrer/solr-go"
 )
@@ -14,20 +16,23 @@ type SolrConfig struct {
 	Host       string
 	Port       string
 	Collection string
+	BaseURL string
 }
 
 type Solr struct {
 	Client     *solr.JSONClient
 	Collection string
+	BaseURL string
 }
 
 func NewSolr(config SolrConfig) Solr {
-	baseURL := fmt.Sprintf("http://solr:%s", config.Port)
+	baseURL := fmt.Sprintf("http://%s:%s/solr/%s",config.Host, config.Port, config.Collection)
 
 	client := solr.NewJSONClient(baseURL)
 	return Solr{
 		Client:     client,
 		Collection: config.Collection,
+		BaseURL: baseURL,
 	}
 }
 
@@ -49,7 +54,7 @@ func (searchEngine Solr) Index(ctx context.Context, curso cursos.Curso) (string,
 	if err != nil {
 		return "", fmt.Errorf("error serializando documento del curso: %w", err)
 	}
-
+	
 	resp, err := searchEngine.Client.Update(ctx, searchEngine.Collection, solr.JSON, bytes.NewReader(body))
 	if err != nil {
 		return "", fmt.Errorf("error al indexar curso: %w", err)
@@ -67,34 +72,42 @@ func (searchEngine Solr) Index(ctx context.Context, curso cursos.Curso) (string,
 }
 
 func (searchEngine Solr) Search(ctx context.Context, query string, limit int, offset int) ([]cursos.Curso, error) {
-    // Crear la consulta Solr como un string formateado correctamente
-    solrQueryString := fmt.Sprintf("q=%s&rows=%d&start=%d&wt=json", query, limit, offset)
-
-    // Crear la query usando el string formateado
-    solrQuery := solr.NewQuery(solrQueryString)
-
-    // Log para depuración
-    fmt.Println("QUERY: ", solrQuery)
-
-    // Ejecutar la consulta utilizando el cliente Solr
-    resp, err := searchEngine.Client.Query(ctx, searchEngine.Collection, solrQuery)
-    fmt.Println("RESP: ", resp)
-
+    // Construir manualmente la URL para /select
+	selectURL := fmt.Sprintf("%s/select?q=course_name:%s&rows=%d&start=%d&wt=json",
+	searchEngine.BaseURL, query, limit, offset)
+	fmt.Println("SELECT URL: ", selectURL)
+    // Crear la solicitud HTTP
+    req, err := http.NewRequestWithContext(ctx, "GET", selectURL, nil)
     if err != nil {
-        return nil, fmt.Errorf("error en consulta de búsqueda: %w", err)
-    }
-    if resp.Error != nil {
-        return nil, fmt.Errorf("error en respuesta de búsqueda: %v", resp.Error)
+        return nil, fmt.Errorf("error construyendo solicitud: %w", err)
     }
 
-    // Verificar si hay resultados
-    if resp.Response.NumFound == 0 {
-        return []cursos.Curso{}, nil
+    // Ejecutar la solicitud
+	fmt.Println("SOLICITUD: ", req)
+    resp, err := http.DefaultClient.Do(req)
+    if err != nil {
+        return nil, fmt.Errorf("error al realizar la solicitud: %w", err)
+    }
+    defer resp.Body.Close()
+
+    if resp.StatusCode != http.StatusOK {
+        return nil, fmt.Errorf("error en la respuesta: %s", resp.Status)
     }
 
-    // Mapear los resultados de Solr a una lista de `cursos.Curso`
+    // Leer y parsear la respuesta
+    var result struct {
+        Response struct {
+            NumFound int                `json:"numFound"`
+            Docs     []map[string]interface{} `json:"docs"`
+        } `json:"response"`
+    }
+    if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
+        return nil, fmt.Errorf("error parseando respuesta: %w", err)
+    }
+
+    // Mapear documentos a la estructura Curso
     var cursosList []cursos.Curso
-    for _, doc := range resp.Response.Documents {
+    for _, doc := range result.Response.Docs {
         curso := cursos.Curso{
             ID:          uint(getIntField(doc, "id")),
             CourseName:  getStringField(doc, "course_name"),
@@ -109,6 +122,7 @@ func (searchEngine Solr) Search(ctx context.Context, query string, limit int, of
 }
 
 
+
 func getStringField(doc map[string]interface{}, field string) string {
 	if val, ok := doc[field].(string); ok {
 		return val
@@ -120,6 +134,11 @@ func getIntField(doc map[string]interface{}, field string) int {
 	if val, ok := doc[field].(float64); ok {
 		return int(val)
 	}
+	if valStr, ok := doc[field].(string); ok {
+        if val, err := strconv.Atoi(valStr); err == nil {
+            return val
+        }
+    }
 	return 0
 }
 

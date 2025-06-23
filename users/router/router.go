@@ -19,6 +19,8 @@ func SetupRouter(r* gin.Engine, cache cache.Cache)*gin.Engine{
 		userRoutes.GET("/:id", func(c* gin.Context){
 			controllers.GetUserByID(c, cache)
 		})
+
+		userRoutes.GET("microservicios", controllers.GetInstances)
 	}
 
 	return r

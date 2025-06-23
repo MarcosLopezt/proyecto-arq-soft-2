@@ -18,6 +18,7 @@ import {
   Alert,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
+import SettingsIcon from "@mui/icons-material/Settings";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import LogoutIcon from "@mui/icons-material/Logout";
 import { useNavigate } from "react-router-dom";
@@ -118,12 +119,15 @@ function Home() {
   });
 
   const search = async (name) => {
-    const response = await fetch(`http://localhost:8083/cursos/${name}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+    const response = await fetch(
+      `http://localhost:8085/search?q=${name}&offset=0&limit=10`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
     if (response.status === 200) {
       const cursos = await response.json();
@@ -147,6 +151,10 @@ function Home() {
   const handleMisCursosButton = () => {
     setRecomendados(true);
     navigate("/mycourses");
+  };
+
+  const navigateToMicroservicios = () => {
+    navigate("/microservicios"); // Navegar a la ruta '/microservicios'
   };
 
   return (
@@ -231,6 +239,15 @@ function Home() {
                     <LogoutIcon className="icon-logout" />
                   </ListItemIcon>
                   <ListItemText primary="Logout" />
+                </ListItemButton>
+              </List>
+              {/* Botón para navegar a /microservicios con icono de ajustes */}
+              <List>
+                <ListItemButton onClick={navigateToMicroservicios}>
+                  <ListItemIcon>
+                    <SettingsIcon /> {/* Icono de ajustes */}
+                  </ListItemIcon>
+                  <ListItemText primary="Ir a Microservicios" />
                 </ListItemButton>
               </List>
             </div>

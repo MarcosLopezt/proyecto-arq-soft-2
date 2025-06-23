@@ -22,3 +22,7 @@ type LoginResponse struct {
 	Token string `json:"token"`
 	Role  string `json:"role"`
 }
+
+type MicroserviceInstance struct {
+	Name string `json:"name"`
+}

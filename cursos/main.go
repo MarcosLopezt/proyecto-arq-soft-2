@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"cursos/queues"
 	"cursos/router"
 	"fmt"
 	"log"
@@ -15,6 +16,7 @@ import (
 )
 
 var mongoClient *mongo.Client
+var rabbit *queues.Rabbit
 
 func initMongoClient() (*mongo.Client, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -42,6 +44,19 @@ func main(){
 		log.Fatalf("Error inicializando el cliente de MongoDB: %v", err)
 	}
 	
+	rabbitConfig := queues.RabbitConfig{
+		Host:      "rabbitmq", 
+		Port:      "5672",
+		Username:  "root",
+		Password:  "password",
+		QueueName: "courses-news",
+	}
+
+	rabbit, err = queues.NewRabbit(rabbitConfig)
+	if err != nil {
+		log.Fatalf("Error al conectar con RabbitMQ: %v", err)
+	}
+
 	engine := gin.Default()
 
 	engine.Use(cors.New(cors.Config{
