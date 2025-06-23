@@ -1,0 +1,20 @@
+# Usar la imagen oficial de Go como base
+FROM golang:1.22
+
+# Establecer el directorio de trabajo dentro del contenedor
+WORKDIR /app
+
+# Copiar el código fuente de la API al contenedor
+COPY . .
+
+# Descargar las dependencias necesarias
+RUN go mod tidy
+
+# Exponer el puerto en el que la API escuchará
+EXPOSE 8080
+
+# Compilar la aplicación
+RUN go build -o search_cursos .
+
+# Comando para iniciar la aplicación
+CMD ["./search_cursos"]

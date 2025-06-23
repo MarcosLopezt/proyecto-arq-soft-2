@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<config>
+    <!-- Define la versión de Lucene para asegurarse de que Solr utilice la configuración de análisis correcta -->
+    <luceneMatchVersion>8.11.0</luceneMatchVersion>
+
+    <!-- Controlador de búsqueda predeterminado -->
+    <requestHandler name="/select" class="solr.SearchHandler">
+        <lst name="defaults">
+            <!-- Define el número de resultados por página -->
+            <str name="rows">10</str>
+            <!-- Formato de respuesta en JSON -->
+            <str name="wt">json</str>
+            <!-- Configura edismax como el analizador de consultas, ideal para búsquedas de texto en campos específicos -->
+            <str name="defType">edismax</str>
+            <!-- Campos que se pueden buscar por defecto; ajusta según los campos de tu esquema -->
+            <str name="df">course_name</str>
+        </lst>
+    </requestHandler>
+
+    <!-- Controlador para solicitudes de actualización de documentos -->
+    <updateRequestHandler name="/update" class="solr.UpdateRequestHandler"/>
+
+    <!-- Configuración para la cadena de procesamiento de actualización -->
+    <updateRequestProcessorChain name="default">
+        <processor class="solr.RunUpdateProcessorFactory"/>
+        <!-- Eliminado el CommitProcessor -->
+    </updateRequestProcessorChain>
+
+    <!-- Controlador para actualización en formato JSON -->
+    <requestHandler name="/update/json/docs" class="solr.UpdateRequestHandler">
+        <lst name="defaults">
+            <!-- Hace que Solr haga un commit de los cambios dentro de 15 segundos -->
+            <str name="commitWithin">15000</str>
+        </lst>
+    </requestHandler>
+
+    <!-- Configuración de la fábrica de directorios para almacenamiento en caché -->
+    <directoryFactory name="DirectoryFactory" class="solr.NRTCachingDirectoryFactory">
+        <int name="maxMergeSizeMB">4</int>
+        <int name="maxCachedMB">48</int>
+    </directoryFactory>
+
+    <!-- Configuración del analizador de consultas; edismax permite búsquedas avanzadas -->
+    <queryParser name="edismax" class="solr.ExtendedDismaxQParserPlugin"/>
+</config>

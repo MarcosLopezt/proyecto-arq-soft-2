@@ -1,0 +1,208 @@
+version: "3.8"
+
+services:
+  mysql:
+    image: mysql:5.7
+    container_name: mysql
+    ports:
+      - "3307:3306"
+    environment:
+      MYSQL_DATABASE: arq-soft
+      MYSQL_ROOT_PASSWORD: marcoslopez1719$
+    volumes:
+      - mysql-data:/var/lib/mysql
+    networks:
+      - app-network
+
+  backend_users:
+    build:
+      context: ./users
+      dockerfile: Dockerfile
+    container_name: backend_users
+    ports:
+      - "8082:8082"
+    environment:
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_USER: root
+      DB_PASS: marcoslopez1719$
+      DB_NAME: arq-soft
+      CACHE_HOST: memcached
+      CACHE_PORT: "11211"
+      DOCKER_HOST: unix:///var/run/docker.sock
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    depends_on:
+      - mysql
+      - memcached
+    networks:
+      - app-network
+
+  backend_users_2:
+    build:
+      context: ./users
+      dockerfile: Dockerfile
+    container_name: backend_users_2
+    ports:
+      - "8082:8082"
+    environment:
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_USER: root
+      DB_PASS: marcoslopez1719$
+      DB_NAME: arq-soft
+      CACHE_HOST: memcached
+      CACHE_PORT: "11211"
+    depends_on:
+      - mysql
+      - memcached
+    networks:
+      - app-network
+
+  backend_subscriptions:
+    build:
+      context: ./subscripciones
+      dockerfile: Dockerfile
+    container_name: backend_subscriptions
+    ports:
+      - "8084:8084"
+    environment:
+      DB_HOST: mysql
+      DB_PORT: "3306"
+      DB_USER: root
+      DB_PASS: marcoslopez1719$
+      DB_NAME: arq-soft
+    depends_on:
+      - mysql
+    networks:
+      - app-network
+
+  backend_courses:
+    build:
+      context: ./cursos
+      dockerfile: Dockerfile
+    container_name: backend_courses
+    ports:
+      - "8083:8083"
+    environment:
+      DB_URI: mongodb://mongo:27017/arq-soft
+    depends_on:
+      - mongo
+    networks:
+      - app-network
+
+  solr:
+    image: solr:8.11
+    container_name: solr
+    ports:
+      - "8983:8983"
+    volumes:
+      - solr-data:/var/solr
+      - "C:/Users/plopez/Documents/arquiSoft/proyecto-arq-soft-1/search_cursos/solr-config/conf:/var/solr/data/configsets/custom_config"
+
+    environment:
+      SOLR_HEAP: 1g
+    command:
+      - "solr-foreground"
+    networks:
+      - app-network
+
+  search_cursos:
+    build:
+      context: ./search_cursos
+      dockerfile: Dockerfile
+    container_name: search_cursos
+    ports:
+      - "8085:8085"
+    environment:
+      SOLR_HOST: solr:8983
+      RABBITMQ_HOST: rabbitmq
+    depends_on:
+      - solr
+      - rabbitmq
+    networks:
+      - app-network
+
+  mongo:
+    image: mongo
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
+    networks:
+      - app-network
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: frontend
+    ports:
+      - "3000:80"
+    depends_on:
+      - backend_users
+      - backend_subscriptions
+      - backend_courses
+    networks:
+      - app-network
+
+  admin:
+    build:
+      context: ./admin
+      dockerfile: Dockerfile
+    container_name: admin
+    ports:
+      - "8087:8087"
+    environment:
+      - DB_HOST=mysql
+      - DB_PORT=3306
+      - DB_USER=root
+      - DB_PASS=marcoslopez1719$
+      - DB_NAME=arq-soft
+    depends_on:
+      - mysql
+    networks:
+      - app-network
+
+  nginx:
+    image: nginx:latest
+    container_name: nginx
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf
+    ports:
+      - "80:80"
+    depends_on:
+      - backend_users
+      - backend_users_2
+    networks:
+      - app-network
+
+  rabbitmq:
+    image: rabbitmq:management
+    container_name: rabbitmq
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    environment:
+      RABBITMQ_DEFAULT_USER: root
+      RABBITMQ_DEFAULT_PASS: password
+    networks:
+      - app-network
+
+  memcached:
+    image: memcached:latest
+    container_name: memcached-container
+    ports:
+      - "11211:11211"
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
+
+volumes:
+  mysql-data:
+  mongo-data:
+  solr-data:

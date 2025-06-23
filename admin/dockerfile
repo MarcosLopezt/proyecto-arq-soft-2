@@ -1,0 +1,17 @@
+# Usa una imagen base de Go más reciente (1.23 o superior)
+FROM golang:1.23-alpine
+
+# Establece el directorio de trabajo
+WORKDIR /app
+
+# Copia los archivos del proyecto
+COPY . .
+
+# Instala las dependencias
+RUN go mod tidy
+
+# Expone el puerto 8087
+EXPOSE 8087
+
+# Comando para ejecutar la aplicación
+CMD ["go", "run", "main.go"]
