@@ -18,7 +18,7 @@ func main(){
 	}
 	 // Inicializamos la caché
 	 config := cache.MemcachedConfig{
-		Host:     "memcached",
+		Host:     "localhost",
 		Port:     "11211",
 		Duration: 10 * time.Minute,
 	}
