@@ -6,19 +6,28 @@ import (
 	"subscripciones/models/files"
 )
 
-func UploadFile(file *files.File) error {
+// FileDAO define las operaciones
+type FileDAO interface {
+	UploadFile(file *files.File) error
+	GetFile(cursoId uint) ([]files.File, error)
+}
+
+// RealDAO es la implementación real con la base de datos
+type RealDAO struct{}
+
+func (r RealDAO) UploadFile(file *files.File) error {
 	return db.DB.Create(file).Error
 }
 
-func GetFile(cursoId uint) ([]files.File,error){
-	var files []files.File
-	if err:= db.DB.Where("curso_id = ?", cursoId).Find(&files).Error; err != nil {
+func (r RealDAO) GetFile(cursoId uint) ([]files.File, error) {
+	var filesList []files.File
+	if err := db.DB.Where("curso_id = ?", cursoId).Find(&filesList).Error; err != nil {
 		return nil, err
 	}
 
-	if len(files) == 0 {
-        return nil, errors.New("no files found for this course")
-    }
+	if len(filesList) == 0 {
+		return nil, errors.New("no files found for this course")
+	}
 
-	return files, nil
+	return filesList, nil
 }

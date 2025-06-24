@@ -3,7 +3,7 @@ package cursos
 import "time"
 
 type Curso struct {
-    ID          uint   	  `json:"id"`
+    ID          uint      `json:"id"`
     CourseName  string    `json:"course_name"`
     Category    string    `json:"category"`
     Length      int       `json:"length"`
@@ -13,6 +13,6 @@ type Curso struct {
 }
 
 type CursoNew struct {
-	Operation string `json:"operation"`
-	CursoID   uint   `json:"course_id"`
+    Operation string `json:"operation"`
+    CursoID   uint   `json:"course_id"`
 }

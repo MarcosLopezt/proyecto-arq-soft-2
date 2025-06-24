@@ -22,7 +22,7 @@ func initMongoClient() (*mongo.Client, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	clientOptions := options.Client().ApplyURI("mongodb://mongo:27017/arq-soft")
+	clientOptions := options.Client().ApplyURI("mongodb://localhost:27017/arq-soft")
 
 	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
@@ -45,7 +45,7 @@ func main(){
 	}
 	
 	rabbitConfig := queues.RabbitConfig{
-		Host:      "rabbitmq", 
+		Host:      "localhost", 
 		Port:      "5672",
 		Username:  "root",
 		Password:  "password",
@@ -66,7 +66,7 @@ func main(){
 		MaxAge:           12 * time.Hour,
 	}))
 
-	router.SetupRouter(engine, mongoClient)
+	router.SetupRouter(engine, mongoClient, rabbit)
 
 	if err := engine.Run(":8083"); err != nil {
 		log.Fatalf("Error al iniciar el servidor: %v", err)

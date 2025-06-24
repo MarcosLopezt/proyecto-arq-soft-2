@@ -5,7 +5,10 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
+	"log"
 	"net/http"
+	"net/url"
 	cursos "search_cursos/dao"
 	"strconv"
 
@@ -26,9 +29,12 @@ type Solr struct {
 }
 
 func NewSolr(config SolrConfig) Solr {
-	baseURL := fmt.Sprintf("http://%s:%s/solr/%s",config.Host, config.Port, config.Collection)
+	baseURL := fmt.Sprintf("http://%s:%s/solr", config.Host, config.Port)
+
 
 	client := solr.NewJSONClient(baseURL)
+	log.Printf("SolR Base URL: %s", baseURL)
+
 	return Solr{
 		Client:     client,
 		Collection: config.Collection,
@@ -36,76 +42,46 @@ func NewSolr(config SolrConfig) Solr {
 	}
 }
 
-func (searchEngine Solr) Index(ctx context.Context, curso cursos.Curso) (string, error) {
-	// Convertir el ID a string antes de indexarlo
-	doc := map[string]interface{}{
-		"id":          fmt.Sprintf("%d", curso.ID),  // Convertir ID a string
-		"course_name": curso.CourseName,
-		"description": curso.Description,
-		"category":    curso.Category,
-		"length":      curso.Length,
-	}
 
-	indexRequest := map[string]interface{}{
-		"add": []interface{}{doc},
-	}
 
-	body, err := json.Marshal(indexRequest)
-	if err != nil {
-		return "", fmt.Errorf("error serializando documento del curso: %w", err)
-	}
-	
-	resp, err := searchEngine.Client.Update(ctx, searchEngine.Collection, solr.JSON, bytes.NewReader(body))
-	if err != nil {
-		return "", fmt.Errorf("error al indexar curso: %w", err)
-	}
-	if resp.Error != nil {
-		return "", fmt.Errorf("error en la respuesta al indexar curso: %v", resp.Error)
-	}
+func (searchEngine Solr) Search(ctx context.Context, query string, limit int, offset int, availableOnly bool) ([]cursos.Curso, error) {
+    if query == "" || query == "*:*" {
+        query = "*:*"
+    } else {
+		query = fmt.Sprintf("%s", url.QueryEscape(query))
 
-	if err := searchEngine.Client.Commit(ctx, searchEngine.Collection); err != nil {
-		return "", fmt.Errorf("error al confirmar cambios en Solr: %w", err)
-	}
+    }
+    fq := ""
+    if availableOnly {
+        fq = "&fq=capacity:[* TO *] AND enrolled:[0 TO *] AND enrolled < capacity"
+    }
+	selectURL := fmt.Sprintf("%s/%s/select?q=%s&qf=course_name^2+description^1+category^1&defType=edismax&rows=%d&start=%d&wt=json%s",
+    searchEngine.BaseURL, searchEngine.Collection, url.QueryEscape(query), limit, offset, fq)
 
-	// Retornar el ID como string también
-	return fmt.Sprintf("%d", curso.ID), nil
-}
-
-func (searchEngine Solr) Search(ctx context.Context, query string, limit int, offset int) ([]cursos.Curso, error) {
-    // Construir manualmente la URL para /select
-	selectURL := fmt.Sprintf("%s/select?q=course_name:%s&rows=%d&start=%d&wt=json",
-	searchEngine.BaseURL, query, limit, offset)
-	fmt.Println("SELECT URL: ", selectURL)
-    // Crear la solicitud HTTP
+    log.Printf("SELECT URL: %s", selectURL)
     req, err := http.NewRequestWithContext(ctx, "GET", selectURL, nil)
     if err != nil {
         return nil, fmt.Errorf("error construyendo solicitud: %w", err)
     }
-
-    // Ejecutar la solicitud
-	fmt.Println("SOLICITUD: ", req)
     resp, err := http.DefaultClient.Do(req)
     if err != nil {
         return nil, fmt.Errorf("error al realizar la solicitud: %w", err)
     }
     defer resp.Body.Close()
-
+	respBody, _ := io.ReadAll(resp.Body)
+	log.Printf("Respuesta Solr: %s", respBody)
     if resp.StatusCode != http.StatusOK {
         return nil, fmt.Errorf("error en la respuesta: %s", resp.Status)
     }
-
-    // Leer y parsear la respuesta
     var result struct {
         Response struct {
             NumFound int                `json:"numFound"`
             Docs     []map[string]interface{} `json:"docs"`
         } `json:"response"`
     }
-    if err := json.NewDecoder(resp.Body).Decode(&result); err != nil {
-        return nil, fmt.Errorf("error parseando respuesta: %w", err)
-    }
-
-    // Mapear documentos a la estructura Curso
+	if err := json.Unmarshal(respBody, &result); err != nil {
+		return nil, fmt.Errorf("error parseando respuesta: %w", err)
+	}
     var cursosList []cursos.Curso
     for _, doc := range result.Response.Docs {
         curso := cursos.Curso{
@@ -117,10 +93,8 @@ func (searchEngine Solr) Search(ctx context.Context, query string, limit int, of
         }
         cursosList = append(cursosList, curso)
     }
-
     return cursosList, nil
 }
-
 
 
 func getStringField(doc map[string]interface{}, field string) string {
@@ -142,72 +116,122 @@ func getIntField(doc map[string]interface{}, field string) int {
 	return 0
 }
 
-func (s Solr) Update(ctx context.Context, curso cursos.Curso) error {
-	// Convertir el curso a JSON para Solr
-	updateRequest := map[string]interface{}{
-		"add": []interface{}{
-			map[string]interface{}{
-				"id":          curso.ID,
-				"course_name": curso.CourseName,
-				"description": curso.Description,
-				"category":    curso.Category,
-				"length":      curso.Length,
-			},
-		},
+func (searchEngine Solr) Index(ctx context.Context, curso cursos.Curso) (string, error) {
+	doc := map[string]interface{}{
+		"id":          fmt.Sprintf("%d", curso.ID),
+		"course_name": curso.CourseName,
+		"description": curso.Description,
+		"category":    curso.Category,
+		"length":      curso.Length,
 	}
-
-	// Convertir la solicitud a JSON
-	body, err := json.Marshal(updateRequest)
+	indexRequest := map[string]interface{}{
+		"add": []interface{}{doc},
+	}
+	body, err := json.Marshal(indexRequest)
 	if err != nil {
-		return fmt.Errorf("error serializando solicitud de actualización: %w", err)
+		return "", fmt.Errorf("error serializando documento del curso: %w", err)
 	}
+	
+	updateURL := fmt.Sprintf("%s/%s/update?commit=true", searchEngine.BaseURL, searchEngine.Collection)
 
-	// Enviar la solicitud de actualización a Solr
-	resp, err := s.Client.Update(ctx, s.Collection, solr.JSON, bytes.NewReader(body))
+	req, err := http.NewRequestWithContext(ctx, "POST", updateURL, bytes.NewReader(body))
 	if err != nil {
-		return fmt.Errorf("error al actualizar curso en Solr: %w", err)
+		return "", fmt.Errorf("error creando request manual: %w", err)
+	}
+	req.Header.Set("Content-Type", "application/json")
+
+	resp, err := http.DefaultClient.Do(req)
+	if err != nil {
+		return "", fmt.Errorf("error haciendo POST manual: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		respBody, _ := io.ReadAll(resp.Body)
+		return "", fmt.Errorf("respuesta error: %s - body: %s", resp.Status, respBody)
 	}
 
-	if resp.Error != nil {
-		return fmt.Errorf("error en la respuesta al actualizar curso en Solr: %v", resp.Error)
-	}
-
-	// Confirmar cambios en Solr
-	if err := s.Client.Commit(ctx, s.Collection); err != nil {
-		return fmt.Errorf("error al confirmar actualización en Solr: %w", err)
-	}
-
-	return nil
+	return fmt.Sprintf("%d", curso.ID), nil
 }
 
+
+func (s Solr) Update(ctx context.Context, curso cursos.Curso) error {
+    // Construir el documento a actualizar
+    doc := map[string]interface{}{
+        "id":          fmt.Sprintf("%d", curso.ID),
+        "course_name": curso.CourseName,
+        "description": curso.Description,
+        "category":    curso.Category,
+        "length":      curso.Length,
+    }
+    updateRequest := map[string]interface{}{
+        "add": []interface{}{doc},
+    }
+    body, err := json.Marshal(updateRequest)
+    if err != nil {
+        return fmt.Errorf("error serializando solicitud de actualización: %w", err)
+    }
+
+    // Construir la URL de actualización con commit=true
+    updateURL := fmt.Sprintf("%s/%s/update?commit=true", s.BaseURL, s.Collection)
+
+    // Crear la solicitud HTTP
+    req, err := http.NewRequestWithContext(ctx, "POST", updateURL, bytes.NewReader(body))
+    if err != nil {
+        return fmt.Errorf("error creando request de actualización: %w", err)
+    }
+    req.Header.Set("Content-Type", "application/json")
+
+    // Ejecutar la solicitud
+    resp, err := http.DefaultClient.Do(req)
+    if err != nil {
+        return fmt.Errorf("error haciendo POST de actualización: %w", err)
+    }
+    defer resp.Body.Close()
+
+    // Verificar el código de estado
+    if resp.StatusCode != http.StatusOK {
+        respBody, _ := io.ReadAll(resp.Body)
+        return fmt.Errorf("respuesta error al actualizar: %s - body: %s", resp.Status, respBody)
+    }
+
+    return nil
+}
 func (s Solr) Delete(ctx context.Context, id string) error {
-	// Crear la solicitud de eliminación en formato JSON
-	deleteRequest := map[string]interface{}{
-		"delete": []interface{}{
-			map[string]interface{}{"id": id},
-		},
-	}
+    // Construir la solicitud de eliminación en formato JSON
+    deleteRequest := map[string]interface{}{
+        "delete": map[string]interface{}{
+            "id": id,
+        },
+    }
+    body, err := json.Marshal(deleteRequest)
+    if err != nil {
+        return fmt.Errorf("error serializando solicitud de eliminación: %w", err)
+    }
+    log.Printf("DEBUG: Solicitud de eliminación en Solr: %+v", deleteRequest)
 
-	// Convertir la solicitud a JSON
-	body, err := json.Marshal(deleteRequest)
-	if err != nil {
-		return fmt.Errorf("error serializando solicitud de eliminación: %w", err)
-	}
+    // Construir la URL de eliminación con commit=true
+    deleteURL := fmt.Sprintf("%s/%s/update?commit=true", s.BaseURL, s.Collection)
 
-	// Enviar la solicitud de eliminación a Solr
-	resp, err := s.Client.Update(ctx, s.Collection, solr.JSON, bytes.NewReader(body))
-	if err != nil {
-		return fmt.Errorf("error al eliminar curso en Solr: %w", err)
-	}
+    // Crear la solicitud HTTP
+    req, err := http.NewRequestWithContext(ctx, "POST", deleteURL, bytes.NewReader(body))
+    if err != nil {
+        return fmt.Errorf("error creando request de eliminación: %w", err)
+    }
+    req.Header.Set("Content-Type", "application/json")
 
-	if resp.Error != nil {
-		return fmt.Errorf("error en la respuesta al eliminar curso en Solr: %v", resp.Error)
-	}
+    // Ejecutar la solicitud
+    resp, err := http.DefaultClient.Do(req)
+    if err != nil {
+        return fmt.Errorf("error haciendo POST de eliminación: %w", err)
+    }
+    defer resp.Body.Close()
 
-	// Confirmar cambios en Solr
-	if err := s.Client.Commit(ctx, s.Collection); err != nil {
-		return fmt.Errorf("error al confirmar eliminación en Solr: %w", err)
-	}
+    // Verificar el código de estado
+    if resp.StatusCode != http.StatusOK {
+        respBody, _ := io.ReadAll(resp.Body)
+        return fmt.Errorf("respuesta error al eliminar: %s - body: %s", resp.Status, respBody)
+    }
 
-	return nil
+    return nil
 }

@@ -2,7 +2,7 @@ package comentarios
 
 import (
 	comentsDomain "subscripciones/models/comentarios"
-	comentsService "subscripciones/services/comentarios"
+	comentsService "subscripciones/services/comentarios_service"
 
 	//"log"
 	"net/http"
