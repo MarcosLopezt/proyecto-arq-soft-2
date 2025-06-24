@@ -44,34 +44,41 @@ func Login(cache cache.Cache, request users.LoginRequest) (users.LoginResponse, 
 	return users.LoginResponse{Token: token, Role: user.Role, ID: user.ID}, nil
 }
 
-func CreateUser(request users.CreateUserRequest) (users.UserResponse, error) {
-	
-	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.DefaultCost)
-	if err != nil {
-		log.Printf("Error hashing password: %v", err)
-		return users.UserResponse{}, err
-	}
+func CreateUser(cache cache.Cache, request users.CreateUserRequest) (users.UserResponse, error) {
+    hashedPassword, err := bcrypt.GenerateFromPassword([]byte(request.Password), bcrypt.DefaultCost)
+    if err != nil {
+        log.Printf("Error hashing password: %v", err)
+        return users.UserResponse{}, err
+    }
 
-	user := &users.User{
-		Email:        request.Email,
-		PasswordHash: string(hashedPassword),
-		Role:         request.Role,
-	}
+    user := &users.User{
+        Email:        request.Email,
+        PasswordHash: string(hashedPassword),
+        Role:         request.Role,
+    }
 
-	
-	if err := dao.CreateUser(user); err != nil {
-		log.Printf("Error creating user: %v", err)
-		return users.UserResponse{}, err
-	}
+    if err := dao.CreateUser(user); err != nil {
+        log.Printf("Error creating user: %v", err)
+        return users.UserResponse{}, err
+    }
 
-	
-	return users.UserResponse{
-		ID:    user.ID,
-		Email: user.Email,
-		Role:  user.Role,
-	}, nil
+    // Cache user
+    ctx := context.Background()
+    _, err = cache.Create(ctx, *user)
+    if err != nil {
+        log.Printf("Error caching user ID %d: %v", user.ID, err)
+    }
+    err = cache.CreateUserByEmail(ctx, user)
+    if err != nil {
+        log.Printf("Error caching user email %s: %v", user.Email, err)
+    }
+
+    return users.UserResponse{
+        ID:    user.ID,
+        Email: user.Email,
+        Role:  user.Role,
+    }, nil
 }
-
 func GetUserByID(cache cache.Cache, id string) (users.UserResponse, error) {
 	uid, err := strconv.ParseUint(id, 10, 32)
 	if err != nil {

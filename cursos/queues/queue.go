@@ -32,7 +32,7 @@ func NewRabbit(config RabbitConfig) (*Rabbit, error) {
 	if err != nil {
 		return nil, fmt.Errorf("Error al crear canal Rabbit: %w", err)
 	}
-	queue, err := channel.QueueDeclare(config.QueueName, false, false, false, false, nil)
+	queue, err := channel.QueueDeclare(config.QueueName, true, false, false, false, nil)
 	if err != nil {
 		return nil, fmt.Errorf("Error al declarar la cola Rabbit: %w", err)
 	}

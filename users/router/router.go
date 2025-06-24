@@ -15,7 +15,9 @@ func SetupRouter(r* gin.Engine, cache cache.Cache)*gin.Engine{
 			controllers.LoginHandler(c, cache)
 		})
 
-		userRoutes.POST("register", controllers.CreateUser)
+		userRoutes.POST("register", func(c *gin.Context){
+			controllers.CreateUser(c, cache)
+		})
 		userRoutes.GET("/:id", func(c* gin.Context){
 			controllers.GetUserByID(c, cache)
 		})

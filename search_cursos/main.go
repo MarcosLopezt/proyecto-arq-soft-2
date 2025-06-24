@@ -19,7 +19,7 @@ import (
 
 func initializeSolr(service services.Service) {
 	// Hacer solicitud GET a la API de cursos para obtener todos los cursos
-	resp, err := http.Get("http://backend_courses:8083/cursos/all")
+	resp, err := http.Get("http://localhost:8083/cursos/all")
 	if err != nil {
 		log.Fatalf("Error al obtener cursos de la API: %v", err)
 	}
@@ -53,13 +53,13 @@ func initializeSolr(service services.Service) {
 func main() {
 	// Solr
 	solrRepo := repositories.NewSolr(repositories.SolrConfig{
-		Host:       "solr",    
+		Host:       "localhost",    
 		Port:       "8983",    
 		Collection: "courses",
 	})
 
 	eventsQueue := queues.NewRabbit(queues.RabbitConfig{
-		Host:      "rabbitmq",
+		Host:      "localhost",
 		Port:      "5672",
 		Username:  "root",
 		Password:  "password",
@@ -67,7 +67,7 @@ func main() {
 	})
 
 	coursesAPI := repositories.NewHTTP(repositories.HTTPConfig{
-		Host: "backend_courses",
+		Host: "localhost",
 		Port: "8083",
 	})
 

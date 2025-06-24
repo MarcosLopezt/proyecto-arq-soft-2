@@ -13,7 +13,7 @@ type Repository interface {
 	Index(ctx context.Context, curso cursosDAO.Curso) (string, error)
 	Update(ctx context.Context, curso cursosDAO.Curso) error
 	Delete(ctx context.Context, id string) error
-	Search(ctx context.Context, query string, limit int, offset int) ([]cursosDAO.Curso, error)
+	Search(ctx context.Context, query string, limit int, offset int, availableOnly bool) ([]cursosDAO.Curso, error)
 }
 
 type ExternalRepository interface {
@@ -21,7 +21,7 @@ type ExternalRepository interface {
 	GetAllCursos(ctx context.Context) ([]cursosDomain.Curso, error)
 }
 
-type Service struct {
+type Service struct {	
 	Repository Repository
 	cursosAPI  ExternalRepository
 }
@@ -63,9 +63,9 @@ func (service Service) InitializeSolr(ctx context.Context) error {
 }
 
 
-func (service Service) Search(ctx context.Context, query string, offset int, limit int) ([]cursosDomain.Curso, error) {
+func (service Service) Search(ctx context.Context, query string, offset int, limit int, avalableOnly bool) ([]cursosDomain.Curso, error) {
 	// Llamar al método Search del repositorio
-	cursosDAOList, err := service.Repository.Search(ctx, query, limit, offset)
+	cursosDAOList, err := service.Repository.Search(ctx, query, limit, offset, avalableOnly)
 	if err != nil {
 		return nil, fmt.Errorf("error buscando cursos: %w", err)
 	}
@@ -92,7 +92,7 @@ func (service Service) HandleCursoNew(cursoNew cursosDomain.CursoNew){
         // buscamos los detalles del servicio de cursos
 		curso, err := service.cursosAPI.GetCursoByID(context.Background(), idString)
 		if err != nil {
-			fmt.Printf("Error getting hotel (%s) from API: %v\n", idString, err)
+			fmt.Printf("Error getting curso (%s) from API: %v\n", idString, err)
 			return
 		}
 
@@ -107,14 +107,14 @@ func (service Service) HandleCursoNew(cursoNew cursosDomain.CursoNew){
         // Si la operación es CREATE, indexamos el curso en Solr
         if cursoNew.Operation == "CREATE" {
             if _, err := service.Repository.Index(context.Background(), cursoDAO); err != nil {
-				fmt.Printf("Error indexing hotel (%s): %v\n", idString, err)
+				fmt.Printf("Error indexing course (%s): %v\n", idString, err)
                 return 
             }else{
 				fmt.Println("Curso indexed successfully:", cursoNew.CursoID)
 			}
         } else { // Si la operación es UPDATE, actualizamos el curso en Solr
             if err := service.Repository.Update(context.Background(), cursoDAO); err != nil {
-				fmt.Printf("Error updating hotel (%s): %v\n", idString, err)
+				fmt.Printf("Error updating course (%s): %v\n", idString, err)
                 return 
             }else{
 				fmt.Println("Curso updated successfully: ", cursoNew.CursoID)

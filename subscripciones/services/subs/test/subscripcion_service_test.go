@@ -1,82 +1,121 @@
 package subscripcion_service_test
 
 import (
-	"subscripciones/models/subs"
-	subservice "subscripciones/services/subs"
+	"errors"
+	"subscripciones/dao/subs"
+	sub "subscripciones/models/subs"
+	service "subscripciones/services/subs"
 	"testing"
 
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
-// Mock del DAO
-type MockDAO struct {
-	mock.Mock
-}
-
-func (m *MockDAO) CreateSubs(sub *subs.Subscription) error {
-	args := m.Called(sub)
-	return args.Error(0)
-}
-
-func (m *MockDAO) GetCupos(courseId uint) (subs.GetCuposResp, error) {
-	args := m.Called(courseId)
-	return args.Get(0).(subs.GetCuposResp), args.Error(1)
-}
-
-func (m *MockDAO) GetSubByUserId(userId uint) ([]subs.Subscription, error) {
-	args := m.Called(userId)
-	return args.Get(0).([]subs.Subscription), args.Error(1)
-}
-
-func (m *MockDAO) GetSubByCursoId(courseId uint) ([]subs.Subscription, error) {
-	args := m.Called(courseId)
-	return args.Get(0).([]subs.Subscription), args.Error(1)
-}
-
-func (m *MockDAO) CountSubsByCourse(cursoID int) (int64, error) {
-	args := m.Called(cursoID)
-	return args.Get(0).(int64), args.Error(1)
-}
-
-func (m *MockDAO) DeleteSubByCourseId(courseId uint) error {
-	args := m.Called(courseId)
-	return args.Error(0)
-}
-
 func TestCreateSubs_Success(t *testing.T) {
-	mockDAO := new(MockDAO)
-	subservice.Dao = mockDAO // Inyectamos el mock
+	mockDao := subs.MockDAO{
+		CreateSubsFunc: func(s *sub.Subscription) error {
+			return nil
+		},
+	}
+	service.Dao = mockDao
 
-	mockRequest := subs.CreateSubsRequest{
+	req := sub.CreateSubsRequest{
 		UserID:   1,
 		CourseID: 2,
 	}
 
-	mockDAO.On("CreateSubs", mock.Anything).Return(nil)
-
-	response, err := subservice.CreateSubs(mockRequest)
-
+	resp, err := service.CreateSubs(req)
 	assert.NoError(t, err)
-	assert.Equal(t, "Subscripcion realizada con exito!", response.Message)
-	mockDAO.AssertExpectations(t)
+	assert.Equal(t, "Subscripcion realizada con exito!", resp.Message)
+}
+
+func TestCreateSubs_Error(t *testing.T) {
+	mockDao := subs.MockDAO{
+		CreateSubsFunc: func(s *sub.Subscription) error {
+			return errors.New("DB error")
+		},
+	}
+	service.Dao = mockDao
+
+	req := sub.CreateSubsRequest{
+		UserID:   1,
+		CourseID: 2,
+	}
+
+	_, err := service.CreateSubs(req)
+	assert.Error(t, err)
+	assert.Equal(t, "DB error", err.Error())
 }
 
 func TestGetSubByUserId_Success(t *testing.T) {
-	mockDAO := new(MockDAO)
-	subservice.Dao = mockDAO // Inyectamos el mock
-
-	mockUserID := uint(1)
-	mockResponse := []subs.Subscription{
-		{ID: 1, UserID: mockUserID, CourseID: 2},
+	mockDao := subs.MockDAO{
+		GetSubByUserIdFunc: func(userId uint) ([]sub.Subscription, error) {
+			return []sub.Subscription{
+				{ID: 1, UserID: userId, CourseID: 10},
+			}, nil
+		},
 	}
+	service.Dao = mockDao
 
-	mockDAO.On("GetSubByUserId", mockUserID).Return(mockResponse, nil)
-
-	response, err := subservice.GetSubByUserId("1")
-
+	resp, err := service.GetSubByUserId("1")
 	assert.NoError(t, err)
-	assert.Equal(t, 1, len(response))
-	assert.Equal(t, mockUserID, response[0].UserID)
-	mockDAO.AssertExpectations(t)
+	assert.Len(t, resp, 1)
+	assert.Equal(t, uint(1), resp[0].ID)
+}
+
+func TestGetSubByUserId_InvalidID(t *testing.T) {
+	service.Dao = subs.MockDAO{}
+
+	_, err := service.GetSubByUserId("abc")
+	assert.Error(t, err)
+	assert.Equal(t, "ID invalido", err.Error())
+}
+
+func TestGetSubByUserId_ErrorFromDAO(t *testing.T) {
+	mockDao := subs.MockDAO{
+		GetSubByUserIdFunc: func(userId uint) ([]sub.Subscription, error) {
+			return nil, errors.New("DAO error")
+		},
+	}
+	service.Dao = mockDao
+
+	_, err := service.GetSubByUserId("1")
+	assert.Error(t, err)
+	assert.Equal(t, "DAO error", err.Error())
+}
+
+func TestGetSubByCursoId_Success(t *testing.T) {
+	mockDao := subs.MockDAO{
+		GetSubByCursoIdFunc: func(courseId uint) ([]sub.Subscription, error) {
+			return []sub.Subscription{
+				{ID: 1, UserID: 1, CourseID: courseId},
+				{ID: 2, UserID: 2, CourseID: courseId},
+			}, nil
+		},
+	}
+	service.Dao = mockDao
+
+	count, err := service.GetSubByCursoId("1")
+	assert.NoError(t, err)
+	assert.Equal(t, 2, count)
+}
+
+func TestGetSubByCursoId_InvalidID(t *testing.T) {
+	service.Dao = subs.MockDAO{}
+
+	_, err := service.GetSubByCursoId("abc")
+	assert.Error(t, err)
+	assert.Equal(t, "ID invalido", err.Error())
+}
+
+func TestGetSubByCursoId_ErrorFromDAO(t *testing.T) {
+	mockDao := subs.MockDAO{
+		GetSubByCursoIdFunc: func(courseId uint) ([]sub.Subscription, error) {
+			return nil, errors.New("DAO error")
+		},
+	}
+	service.Dao = mockDao
+
+	_, err := service.GetSubByCursoId("1")
+	assert.Error(t, err)
+	assert.Equal(t, "DAO error", err.Error())
 }

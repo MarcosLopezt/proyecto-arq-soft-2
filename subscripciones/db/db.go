@@ -3,7 +3,6 @@ package db
 import (
 	"fmt"
 	"log"
-	"os"
 	comentario "subscripciones/models/comentarios"
 	"subscripciones/models/files"
 	models "subscripciones/models/subs"
@@ -17,16 +16,16 @@ var DB *gorm.DB
 
 func Connect() error {
 	// Obtiene las variables de entorno
-	dbHost := os.Getenv("DB_HOST")
-	dbPort := os.Getenv("DB_PORT")
-	dbUser := os.Getenv("DB_USER")
-	dbPassword := os.Getenv("DB_PASS")
-	dbName := os.Getenv("DB_NAME")
+	// dbHost := os.Getenv("DB_HOST")
+	// dbPort := os.Getenv("DB_PORT")
+	// dbUser := os.Getenv("DB_USER")
+	// dbPassword := os.Getenv("DB_PASS")
+	// dbName := os.Getenv("DB_NAME")
 
-	// Formatea la cadena de conexión
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
-		dbUser, dbPassword, dbHost, dbPort, dbName)
-
+	// // Formatea la cadena de conexión
+	// dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+	// 	dbUser, dbPassword, dbHost, dbPort, dbName)
+	dsn := "root:marcoslopez1719$@tcp(localhost:3306)/arq-soft?charset=utf8mb4&parseTime=True&loc=Local"
 	var err error
 	var db *gorm.DB
 	for i := 0; i < 10; i++ {
@@ -61,12 +60,26 @@ func Connect() error {
 }
 
 func AutoMigrate() error {
-	err := DB.AutoMigrate(&models.Subscription{}, &comentario.Comentario{}, files.File{}) 
-	if err != nil {
-		log.Printf("No se pudo crear la tabla de subscripciones")
-		return err
-	}
+    // Lista de modelos a migrar
+    modelsToMigrate := []interface{}{
+        &models.Subscription{},
+        &comentario.Comentario{},
+        &files.File{},
+    }
 
-	log.Println("Migración automática completada para la tabla de subscripciones")
-	return nil
+    for _, model := range modelsToMigrate {
+        if !DB.Migrator().HasTable(model) {
+            err := DB.AutoMigrate(model)
+            if err != nil {
+                log.Printf("No se pudo crear la tabla para %T: %v", model, err)
+                return err
+            }
+            log.Printf("Tabla creada para %T", model)
+        } else {
+            log.Printf("La tabla para %T ya existe, omitiendo migración", model)
+        }
+    }
+
+    log.Println("Migración automática completada para todas las tablas")
+    return nil
 }

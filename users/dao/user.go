@@ -12,7 +12,11 @@ import (
 )
 
 //crear nuevo usuario en db
-
+type UserDAO interface {
+    CreateUser(user *users.User) error
+    GetUserByID(ctx context.Context, cache cache.Cache, id uint) (*users.User, error)
+    GetUserByEmail(ctx context.Context, cache cache.Cache, email string) (*users.User, error)
+}
 func CreateUser(user *users.User) error {
     return db.DB.Create(user).Error
 }

@@ -4,12 +4,14 @@ import (
 	"context"
 	"cursos/dao"
 	cursos "cursos/models"
+	"cursos/queues"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
 	"log"
 	"net/http"
+	"sync"
 
 	//"sync"
 	"time"
@@ -26,7 +28,18 @@ type UserResponse struct {
 	Role  string `json:"role"`
 }
 
-func CreateCourse(mongoClient *mongo.Client, request cursos.CreateCourseRequest) (cursos.CreateCourseResponse, error) {
+// CourseService representa el servicio de cursos
+type CourseService struct {
+	DAO *dao.MongoCourseDAO
+}
+
+// AvailabilityResponse representa la respuesta de disponibilidad de un curso
+type AvailabilityResponse struct {
+	CourseID  uint `json:"course_id"`
+	Available bool `json:"available"`
+}
+
+func CreateCourse(mongoClient *mongo.Client, request cursos.CreateCourseRequest, rabbit *queues.Rabbit) (cursos.CreateCourseResponse, error) {
 	userId := request.UserID
 	role, err := GetRole(userId)
 	if err != nil {
@@ -53,6 +66,15 @@ func CreateCourse(mongoClient *mongo.Client, request cursos.CreateCourseRequest)
 		log.Printf("Error creating course: %v", err)
 		return cursos.CreateCourseResponse{}, err
 	}
+
+	cursoNew := cursos.CursoNew{
+        CursoID:          curso.ID,
+		Operation: "CREATE",
+    }
+
+    if err := rabbit.Publish(cursoNew); err != nil {
+        log.Printf("Error publicando curso a RabbitMQ: %v", err)
+    }
 
 	return cursos.CreateCourseResponse{
 		Message: "Se creó el curso exitosamente",
@@ -155,7 +177,6 @@ func GetCourseByID1(mongoClient *mongo.Client, id string) (cursos.GetCourseByIDR
         return cursos.GetCourseByIDResponse{}, result.err
     }
 
-    log.Printf("Disponibilidad actualizada para el curso %s: %d", curso.ID, result.disponibilidad)
 
     return cursos.GetCourseByIDResponse{
         ID:          curso.ID,
@@ -170,7 +191,7 @@ func GetCourseByID1(mongoClient *mongo.Client, id string) (cursos.GetCourseByIDR
 
 
 
-func UpdateCourse(mongoClient *mongo.Client, request cursos.UpdateCourseRequest) (cursos.UpdateCourseResponse, error) {
+func UpdateCourse(mongoClient *mongo.Client, request cursos.UpdateCourseRequest, rabbit *queues.Rabbit) (cursos.UpdateCourseResponse, error) {
 	userId := request.UserID
 	role, err := GetRole(userId)
 	if err != nil {
@@ -187,6 +208,15 @@ func UpdateCourse(mongoClient *mongo.Client, request cursos.UpdateCourseRequest)
 		log.Printf("Error updating course: %v", err)
 		return cursos.UpdateCourseResponse{}, err
 	}
+	cursoNew := cursos.CursoNew{
+        CursoID:          updatedCourse.ID,
+		Operation: "UPDATE",
+    }
+
+    if err := rabbit.Publish(cursoNew); err != nil {
+        log.Printf("Error publicando curso a RabbitMQ: %v", err)
+    }
+
 
 	return cursos.UpdateCourseResponse{
 		ID:          updatedCourse.ID,
@@ -198,7 +228,7 @@ func UpdateCourse(mongoClient *mongo.Client, request cursos.UpdateCourseRequest)
 	}, nil
 }
 
-func DeleteCourse(mongoClient *mongo.Client, request cursos.DeleteCourseRequest) (cursos.DeleteCourseResponse, error) {
+func DeleteCourse(mongoClient *mongo.Client, request cursos.DeleteCourseRequest, rabbit *queues.Rabbit) (cursos.DeleteCourseResponse, error) {
 	courseDAO := dao.NewMongoCourseDAO(mongoClient, "arqui_soft", "courses")
 	deleteResponse, err := courseDAO.DeleteCourse(ctx, &request)
 	if err != nil {
@@ -206,13 +236,22 @@ func DeleteCourse(mongoClient *mongo.Client, request cursos.DeleteCourseRequest)
 		return cursos.DeleteCourseResponse{}, err
 	}
 
+	cursoNew := cursos.CursoNew{
+        CursoID:          request.ID,
+		Operation: "DELETE",
+    }
+
+    if err := rabbit.Publish(cursoNew); err != nil {
+        log.Printf("Error publicando curso a RabbitMQ: %v", err)
+    }
+
 	return cursos.DeleteCourseResponse{
 		Message: deleteResponse.Message,
 	}, nil
 }
 
 func GetRole(userId uint) (string, error) {
-	apiURL := fmt.Sprintf("http://backend_users:8082/users/%d", userId)
+	apiURL := fmt.Sprintf("http://localhost:8082/users/%d", userId)
 
 	// Hacer la solicitud HTTP al endpoint
 	resp, err := http.Get(apiURL)
@@ -239,4 +278,55 @@ func GetRole(userId uint) (string, error) {
 	}
 
 	return userResponse.Role, nil
+}
+
+func CheckAvailability(mongoClient *mongo.Client, courseIDs []uint) ([]AvailabilityResponse, error) {
+    type availabilityResult struct {
+        CourseID uint
+        Available bool
+        Err      error
+    }
+
+    resultsChan := make(chan availabilityResult, len(courseIDs))
+    var wg sync.WaitGroup
+
+    for _, id := range courseIDs {
+        wg.Add(1)
+        go func(id uint) {
+            defer wg.Done()
+            courseDAO := dao.NewMongoCourseDAO(mongoClient, "arqui_soft", "courses")
+            course, err := courseDAO.GetCourseByID(context.Background(), fmt.Sprintf("%d", id))
+            if err != nil {
+                resultsChan <- availabilityResult{CourseID: id, Err: err}
+                return
+            }
+            if course == nil {
+                resultsChan <- availabilityResult{CourseID: id, Err: errors.New("course not found")}
+                return
+            }
+            // Asumiendo que hay campos Capacity y Enrolled en el modelo Course
+            // Si no existen, puedes ajustar esta lógica
+            available := course.Cupos > 0 // Simplificado para usar Cupos
+            resultsChan <- availabilityResult{CourseID: id, Available: available}
+        }(id)
+    }
+
+    go func() {
+        wg.Wait()
+        close(resultsChan)
+    }()
+
+    var responses []AvailabilityResponse
+    for result := range resultsChan {
+        if result.Err != nil {
+            log.Printf("Error checking availability for course %d: %v", result.CourseID, result.Err)
+            continue
+        }
+        responses = append(responses, AvailabilityResponse{
+            CourseID:  result.CourseID,
+            Available: result.Available,
+        })
+    }
+
+    return responses, nil
 }

@@ -216,7 +216,7 @@ func (dao *MongoCourseDAO) CalcularDisponibilidad(ctx context.Context, cursoID u
 
 func obtenerCantidadInscripciones(cursoID uint) (int, error) {
 	// Construir la URL de la API
-	apiURL := fmt.Sprintf("http://backend_subscriptions:8084/subscriptions/get/curso/%d", cursoID)
+	apiURL := fmt.Sprintf("http://localhost:8084/subscriptions/get/curso/%d", cursoID)
 
 	resp, err := http.Get(apiURL)
 	if err != nil {

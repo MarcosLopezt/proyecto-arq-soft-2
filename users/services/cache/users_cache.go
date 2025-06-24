@@ -12,7 +12,7 @@ import (
 )
 
 const (
-	keyFormatByID    = "user:%d"
+	keyFormatByID    = "user:%s"
 	keyFormatByEmail = "user:email:%s"
 )
 
@@ -22,10 +22,12 @@ type MemcachedConfig struct {
 	Duration time.Duration // Tiempo de expiración para las claves
 }
 
+
 type Cache struct {
 	client   *memcache.Client
 	duration time.Duration
 }
+
 
 // NewCache inicializa una conexión con el servidor Memcached y verifica la conexión inicial
 func NewCache(config MemcachedConfig) (Cache, error) {
@@ -60,13 +62,16 @@ func (repository Cache) GetUserByID(ctx context.Context, id string) (usersDAO.Us
 	key := fmt.Sprintf(keyFormatByID, id)
 	item, err := repository.client.Get(key)
 	if err == memcache.ErrCacheMiss {
+		fmt.Println("1")
 		return usersDAO.User{}, fmt.Errorf("no se encontró el ítem con la clave %s", key)
 	} else if err != nil {
+		fmt.Println("2")
 		return usersDAO.User{}, fmt.Errorf("error obteniendo el ítem con la clave %s: %w", key, err)
 	}
 
 	var user usersDAO.User
 	if err := json.Unmarshal(item.Value, &user); err != nil {
+		fmt.Println("3")
 		return usersDAO.User{}, fmt.Errorf("error al deserializar el ítem con la clave %s: %w", key, err)
 	}
 
@@ -115,7 +120,7 @@ func (repository Cache) CreateUserByEmail(ctx context.Context, user *usersDAO.Us
 
 // Create guarda un usuario en la caché usando el ID como clave
 func (repository Cache) Create(ctx context.Context, user usersDAO.User) (string, error) {
-	key := fmt.Sprintf(keyFormatByID, user.ID)
+	key := fmt.Sprintf(keyFormatByID, fmt.Sprintf("%d", user.ID))
 	fmt.Println("Guardando usuario en caché con clave:", key)
 
 	data, err := json.Marshal(user)

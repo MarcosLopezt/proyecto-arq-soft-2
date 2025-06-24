@@ -1,7 +1,6 @@
 package users
 
 import (
-	"log"
 	"net/http"
 	"time"
 	usersDomain "users/models"
@@ -41,7 +40,7 @@ func LoginHandler(c *gin.Context, cache cache.Cache) {
 	c.JSON(http.StatusOK, response)
 }
 
-func CreateUser(c *gin.Context) {
+func CreateUser(c *gin.Context, cache cache.Cache) {
 	var createUserRequest usersDomain.CreateUserRequest
 
 	if err := c.ShouldBindJSON(&createUserRequest); err != nil {
@@ -49,9 +48,7 @@ func CreateUser(c *gin.Context) {
 		return
 	}
 
-	log.Printf("Inicio creacion1")
-
-	user, err := usersService.CreateUser(createUserRequest)
+	user, err := usersService.CreateUser(cache, createUserRequest)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
