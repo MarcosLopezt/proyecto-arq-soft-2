@@ -27,7 +27,7 @@ function CreateCourse() {
   const navigate = useNavigate();
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [open, setOpen] = useState(false);
-  const userId = localStorage.getItem("userID");
+  const userId = parseInt(localStorage.getItem("userID"), 10);
   const handleLogoutClick = () => {
     setLogoutOpen(true);
   };
@@ -43,6 +43,7 @@ function CreateCourse() {
   };
 
   const [curso, setCurso] = useState({
+    user_id: userId,
     course_name: "",
     category: "",
     description: "",
