@@ -3,6 +3,7 @@ package db
 import (
 	"fmt"
 	"log"
+	"os"
 	"time"
 	models "users/models"
 
@@ -14,18 +15,18 @@ var DB *gorm.DB
 
 func Connect() error {
 	// Obtiene las variables de entorno
-	// dbHost := os.Getenv("DB_HOST")
-	// dbPort := os.Getenv("DB_PORT")
-	// dbUser := os.Getenv("DB_USER")
-	// dbPassword := os.Getenv("DB_PASS")
-	// dbName := os.Getenv("DB_NAME")
+	dbHost := os.Getenv("DB_HOST")
+	dbPort := os.Getenv("DB_PORT")
+	dbUser := os.Getenv("DB_USER")
+	dbPassword := os.Getenv("DB_PASS")
+	dbName := os.Getenv("DB_NAME")
 
-	// log.Printf("DB_HOST: %s, DB_PORT: %s, DB_USER: %s, DB_NAME: %s", 
-    //     dbHost, dbPort, dbUser, dbName)
-	// // Formatea la cadena de conexión
-	// dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
-	// 	dbUser, dbPassword, dbHost, dbPort, dbName)
-	dsn := "root:marcoslopez1719$@tcp(localhost:3306)/arq-soft?charset=utf8mb4&parseTime=True&loc=Local"
+	log.Printf("DB_HOST: %s, DB_PORT: %s, DB_USER: %s, DB_NAME: %s", 
+        dbHost, dbPort, dbUser, dbName)
+	// Formatea la cadena de conexión
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?charset=utf8mb4&parseTime=True&loc=Local",
+		dbUser, dbPassword, dbHost, dbPort, dbName)
+	
 	var err error
 	var db *gorm.DB
 	for i := 0; i < 10; i++ {

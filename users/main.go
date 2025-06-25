@@ -2,6 +2,7 @@ package main
 
 import (
 	"log"
+	"os"
 	"time"
 	"users/db"
 	"users/router"
@@ -18,8 +19,8 @@ func main(){
 	}
 	 // Inicializamos la caché
 	 config := cache.MemcachedConfig{
-		Host:     "localhost",
-		Port:     "11211",
+		Host:     os.Getenv("CACHE_HOST"),
+		Port:     os.Getenv("CACHE_PORT"),
 		Duration: 10 * time.Minute,
 	}
     cacheInstance, err := cache.NewCache(config)

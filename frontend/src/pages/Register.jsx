@@ -43,14 +43,14 @@ export default function Register() {
   const login = async (email, password) => {
     console.log(email);
     console.log(password);
-    let role = "user";
-    console.log(role);
+    //let role = "admin";
+    //console.log(role);
     const response = await fetch("http://localhost:8082/users/register", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ email: email, password: password, role: role }),
+      body: JSON.stringify({ email: email, password: password, role: 'admin' }),
     });
 
     if (response.status === 201) {

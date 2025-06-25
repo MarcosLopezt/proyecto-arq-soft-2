@@ -90,6 +90,17 @@ func main() {
 		MaxAge:           12 * time.Hour,
 	}))
 
+	// Health check endpoint
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"status": "healthy",
+			"service": "search-service",
+			"timestamp": gin.H{
+				"current": "2024-01-01T00:00:00Z",
+			},
+		})
+	})
+
 	router.GET("/search", controller.Search)
 	if err := router.Run(":8085"); err != nil {
 		log.Fatalf("Error running application: %v", err)

@@ -6,6 +6,7 @@ import (
 	"cursos/router"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -22,7 +23,13 @@ func initMongoClient() (*mongo.Client, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	clientOptions := options.Client().ApplyURI("mongodb://localhost:27017/arq-soft")
+	// Usar variables de entorno para la conexión a MongoDB
+	dbURI := os.Getenv("DB_URI")
+	if dbURI == "" {
+		dbURI = "mongodb://mongo:27017/arq-soft" // Valor por defecto
+	}
+
+	clientOptions := options.Client().ApplyURI(dbURI)
 
 	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
@@ -44,11 +51,32 @@ func main(){
 		log.Fatalf("Error inicializando el cliente de MongoDB: %v", err)
 	}
 	
+	// Usar variables de entorno para RabbitMQ
+	rabbitHost := os.Getenv("RABBITMQ_HOST")
+	if rabbitHost == "" {
+		rabbitHost = "rabbitmq" // Valor por defecto
+	}
+	
+	rabbitPort := os.Getenv("RABBITMQ_PORT")
+	if rabbitPort == "" {
+		rabbitPort = "5672" // Valor por defecto
+	}
+	
+	rabbitUsername := os.Getenv("RABBITMQ_USER")
+	if rabbitUsername == "" {
+		rabbitUsername = "root" // Valor por defecto
+	}
+	
+	rabbitPassword := os.Getenv("RABBITMQ_PASS")
+	if rabbitPassword == "" {
+		rabbitPassword = "password" // Valor por defecto
+	}
+
 	rabbitConfig := queues.RabbitConfig{
-		Host:      "localhost", 
-		Port:      "5672",
-		Username:  "root",
-		Password:  "password",
+		Host:      rabbitHost, 
+		Port:      rabbitPort,
+		Username:  rabbitUsername,
+		Password:  rabbitPassword,
 		QueueName: "courses-news",
 	}
 

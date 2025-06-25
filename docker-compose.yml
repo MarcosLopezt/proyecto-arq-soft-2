@@ -2,7 +2,8 @@ version: "3.8"
 
 services:
   mysql:
-    image: mysql:5.7
+    image: mysql:8.0
+    platform: linux/arm64/v8
     container_name: mysql
     ports:
       - "3307:3306"
@@ -44,7 +45,7 @@ services:
       dockerfile: Dockerfile
     container_name: backend_users_2
     ports:
-      - "8082:8082"
+      - "8083:8082"
     environment:
       DB_HOST: mysql
       DB_PORT: "3306"
@@ -83,7 +84,7 @@ services:
       dockerfile: Dockerfile
     container_name: backend_courses
     ports:
-      - "8083:8083"
+      - "8085:8083"
     environment:
       DB_URI: mongodb://mongo:27017/arq-soft
     depends_on:
@@ -93,12 +94,13 @@ services:
 
   solr:
     image: solr:8.11
+    platform: linux/arm64/v8
     container_name: solr
     ports:
       - "8983:8983"
     volumes:
       - solr-data:/var/solr
-      - "C:/Users/plopez/Documents/arquiSoft/proyecto-arq-soft-1/search_cursos/solr-config/conf:/var/solr/data/configsets/custom_config"
+      - ./search_cursos/solr-config/conf:/var/solr/data/configsets/custom_config
 
     environment:
       SOLR_HEAP: 1g
@@ -113,7 +115,7 @@ services:
       dockerfile: Dockerfile
     container_name: search_cursos
     ports:
-      - "8085:8085"
+      - "8086:8085"
     environment:
       SOLR_HOST: solr:8983
       RABBITMQ_HOST: rabbitmq
@@ -124,7 +126,8 @@ services:
       - app-network
 
   mongo:
-    image: mongo
+    image: mongo:latest
+    platform: linux/arm64/v8
     container_name: mongo
     ports:
       - "27017:27017"
@@ -167,6 +170,7 @@ services:
 
   nginx:
     image: nginx:latest
+    platform: linux/arm64/v8
     container_name: nginx
     volumes:
       - ./nginx.conf:/etc/nginx/nginx.conf
@@ -180,6 +184,7 @@ services:
 
   rabbitmq:
     image: rabbitmq:management
+    platform: linux/arm64/v8
     container_name: rabbitmq
     ports:
       - "5672:5672"
@@ -192,6 +197,7 @@ services:
 
   memcached:
     image: memcached:latest
+    platform: linux/arm64/v8
     container_name: memcached-container
     ports:
       - "11211:11211"

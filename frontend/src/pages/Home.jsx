@@ -30,6 +30,7 @@ import { isAuthenticated } from "../utils/authUtils";
 function Home() {
   //const location = useLocation();
   const userRole = localStorage.getItem("userRole");
+  console.log('userRole', userRole);
 
   const navigate = useNavigate();
   const [logoutOpen, setLogoutOpen] = useState(false);
