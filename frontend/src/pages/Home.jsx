@@ -130,12 +130,13 @@ function Home() {
     );
 
     if (response.status === 200) {
-      const cursos = await response.json();
-      if (cursos === null) {
+      const data = await response.json();
+      if (!data.courses || data.courses.length === 0) {
         setSnackbarMessage("No existen cursos con ese nombre o categoría.");
         setSnackbarOpen(true);
+      } else {
+        setCourses(data.courses);
       }
-      setCourses(cursos);
     } else {
       console.log("no encontre cursos");
       setSnackbarMessage("No existen cursos con ese nombre o categoría.");

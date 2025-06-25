@@ -32,6 +32,7 @@ function UpdateCourse() {
   const descripcion = localStorage.getItem("cursoDescripcion");
   const categoria = localStorage.getItem("cursoCategoria");
   const length = parseInt(localStorage.getItem("cursoLength"), 10);
+  const userID = parseInt(localStorage.getItem("userID"), 10);
   const [open, setOpen] = useState(false);
   const [wrongOpen, setWrongOpen] = useState(false);
 
@@ -50,6 +51,7 @@ function UpdateCourse() {
   };
 
   const [curso, setCurso] = useState({
+    user_id: userID,
     ID: courseID,
     course_name: titulo || "",
     category: categoria || "",
@@ -68,7 +70,7 @@ function UpdateCourse() {
   const funcOnSubmit = async (event) => {
     event.preventDefault();
     const lengthInt = parseInt(curso.length, 10);
-    //console.log(curso);
+    // console.log("CURSO: ", curso);
 
     const response = await fetch(`http://localhost:8083/cursos/update`, {
       method: "PUT",
@@ -78,7 +80,7 @@ function UpdateCourse() {
       body: JSON.stringify({ ...curso, length: lengthInt }),
     });
 
-    //console.log(response);
+    console.log(response);
 
     if (response.ok) {
       //console.log("Curso actualizado exitosamente.");
@@ -94,6 +96,13 @@ function UpdateCourse() {
       return;
     }
     setOpen(false);
+  };
+
+  const handleCloseError = (event, reason) => {
+    if (reason === "clickaway") {
+      return;
+    }
+    setWrongOpen(false);
   };
 
   return (
@@ -236,7 +245,7 @@ function UpdateCourse() {
                 anchorOrigin={{ vertical: "top", horizontal: "right" }}
               >
                 <Alert
-                  onClose={handleClose}
+                  onClose={handleCloseError}
                   severity="error"
                   sx={{
                     width: "100%",

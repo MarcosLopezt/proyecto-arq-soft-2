@@ -59,6 +59,7 @@ export default function Login() {
       const role = data.role;
       localStorage.setItem("authToken", data.token);
       localStorage.setItem("userID", data.id);
+      // console.log("userID: ", data.id);
       localStorage.setItem("userRole", role);
       navigate("/home", { state: { role } });
     } else if (

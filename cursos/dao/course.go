@@ -202,15 +202,15 @@ func (dao *MongoCourseDAO) CalcularDisponibilidad(ctx context.Context, cursoID u
 	if err != nil {
 		return 0, fmt.Errorf("error obteniendo inscripciones desde la API: %w", err)
 	}
-	fmt.Println("CUPOS INICIALES: ", cuposIniciales)
-	fmt.Println("CANTIDAD INSCRIP: ", inscripcionesCount)
+	// fmt.Println("CUPOS INICIALES: ", cuposIniciales)
+	// fmt.Println("CANTIDAD INSCRIP: ", inscripcionesCount)
 
 	// Calcular disponibilidad restante
 	disponibilidad := cuposIniciales - int(inscripcionesCount)
 	if disponibilidad < 0 {
 		disponibilidad = 0 // Evitar valores negativos
 	}
-	fmt.Println("DISPONIBILIDAD CUPOS: ", disponibilidad)
+	// fmt.Println("DISPONIBILIDAD CUPOS: ", disponibilidad)
 	return disponibilidad, nil
 }
 
