@@ -71,7 +71,11 @@ func main() {
 		Port: "8083",
 	})
 
-	service := services.NewService(solrRepo, coursesAPI)
+	
+
+	subsClient := repositories.NewSubscriptionsClient("http://localhost:8084")
+
+	service := services.NewService(solrRepo, coursesAPI, subsClient)
 
 	initializeSolr(service)
 	

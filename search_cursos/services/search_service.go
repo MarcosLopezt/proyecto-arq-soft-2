@@ -6,6 +6,7 @@ import (
 	"log"
 	cursosDAO "search_cursos/dao"
 	cursosDomain "search_cursos/domain"
+	"search_cursos/repositories"
 	"strconv"
 )
 
@@ -24,12 +25,14 @@ type ExternalRepository interface {
 type Service struct {	
 	Repository Repository
 	cursosAPI  ExternalRepository
+	subsClient repositories.SubscriptionsClient
 }
 
-func NewService(repository Repository, cursosAPI ExternalRepository) Service {
+func NewService(repository Repository, cursosAPI ExternalRepository, subsClient repositories.SubscriptionsClient) Service {
 	return Service{
 		Repository: repository,
 		cursosAPI:  cursosAPI,
+		subsClient: subsClient,
 	}
 }
 
@@ -63,27 +66,72 @@ func (service Service) InitializeSolr(ctx context.Context) error {
 }
 
 
-func (service Service) Search(ctx context.Context, query string, offset int, limit int, avalableOnly bool) ([]cursosDomain.Curso, error) {
-	// Llamar al método Search del repositorio
-	cursosDAOList, err := service.Repository.Search(ctx, query, limit, offset, avalableOnly)
+func (service Service) Search(ctx context.Context, query string, offset int, limit int, availableOnly bool) ([]cursosDomain.Curso, error) {
+	// 1️ Hacer el search en SolR
+	cursosDAOList, err := service.Repository.Search(ctx, query, limit, offset, availableOnly)
 	if err != nil {
 		return nil, fmt.Errorf("error buscando cursos: %w", err)
 	}
 
-	// Convertir los cursos de la capa DAO a la capa del dominio
-	cursosDomainList := make([]cursosDomain.Curso, 0)
-	for _, curso := range cursosDAOList {
+	if len(cursosDAOList) == 0 {
+		return []cursosDomain.Curso{}, nil
+	}
+
+	// 2️ Convertir a domain
+	cursosDomainList := make([]cursosDomain.Curso, 0, len(cursosDAOList))
+	for _, c := range cursosDAOList {
 		cursosDomainList = append(cursosDomainList, cursosDomain.Curso{
-			ID:          curso.ID,
-			CourseName:  curso.CourseName,
-			Description: curso.Description,
-			Category:    curso.Category,	
-			Length:      curso.Length,
+			ID:          c.ID,
+			CourseName:  c.CourseName,
+			Description: c.Description,
+			Category:    c.Category,
+			Length:      c.Length,
+			Cupos:       c.Cupos, 
 		})
 	}
 
-	return cursosDomainList, nil
+	// 3️ Lanzar goroutines para consultar inscriptos
+	type result struct {
+		curso cursosDomain.Curso
+		subs  int
+		err   error
+	}
+
+	resultsCh := make(chan result, len(cursosDomainList))
+
+	for _, curso := range cursosDomainList {
+		c := curso
+		go func() {
+			count, err := service.subsClient.GetSubsCount(ctx, c.ID)
+			resultsCh <- result{
+				curso: c,
+				subs:  count,
+				err:   err,
+			}
+		}()
+	}
+
+	// 4️ Recolectar resultados y filtrar si es necesario
+	var final []cursosDomain.Curso
+	for i := 0; i < len(cursosDomainList); i++ {
+		r := <-resultsCh
+		if r.err != nil {
+			log.Printf("Error obteniendo subscripciones para curso %d: %v", r.curso.ID, r.err)
+			continue // o podés decidir incluir igual si falla
+		}
+
+		if availableOnly {
+			if r.subs >= r.curso.Cupos {
+				continue
+			}
+		}
+
+		final = append(final, r.curso)
+	}
+
+	return final, nil
 }
+
 
 func (service Service) HandleCursoNew(cursoNew cursosDomain.CursoNew){
 	idString := strconv.FormatUint(uint64(cursoNew.CursoID), 10)

@@ -15,6 +15,7 @@
   </fieldType>
   <field name="category" type="text_general" indexed="true" stored="true"/>
   <field name="course_name" type="text_general" indexed="true" stored="true"/>
+  <field name="cupos" type="float" uninvertible="true" indexed="true" stored="true"/>
   <field name="description" type="text_general" indexed="true" stored="true"/>
   <field name="id" type="text_general" indexed="true" required="true" stored="true"/>
   <field name="length" type="float" indexed="true" stored="true"/>

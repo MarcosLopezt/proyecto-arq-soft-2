@@ -314,7 +314,7 @@ function Course() {
           >
             {descripcion}
           </Typography>
-          <Typography>Disponibilidad: {disp}</Typography>
+          <Typography>Cupos restantes: {disp}</Typography>
           <Button
             variant="contained"
             className="button-subscribe"

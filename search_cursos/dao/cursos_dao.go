@@ -6,4 +6,5 @@ type Curso struct {
 	Description string `json:"description"`
 	Category    string `json:"category"`
 	Length      int    `json:"length"`
+	Cupos       int    `json:"cupos"`
 }
