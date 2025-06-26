@@ -6,6 +6,7 @@ import (
 	"cursos/router"
 	"fmt"
 	"log"
+	"os"
 	"time"
 
 	"github.com/gin-contrib/cors"
@@ -18,11 +19,25 @@ import (
 var mongoClient *mongo.Client
 var rabbit *queues.Rabbit
 
+func getEnv(key, defaultValue string) string {
+	if value := os.Getenv(key); value != "" {
+		return value
+	}
+	return defaultValue
+}
+
 func initMongoClient() (*mongo.Client, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	clientOptions := options.Client().ApplyURI("mongodb://localhost:27017/arq-soft")
+	// Usar variables de entorno con valores por defecto para Docker
+	mongoHost := getEnv("MONGO_HOST", "mongo")
+	mongoPort := getEnv("MONGO_PORT", "27017")
+	mongoDB := getEnv("MONGO_DB", "arq-soft")
+	
+	mongoURI := fmt.Sprintf("mongodb://%s:%s/%s", mongoHost, mongoPort, mongoDB)
+	
+	clientOptions := options.Client().ApplyURI(mongoURI)
 
 	client, err := mongo.Connect(ctx, clientOptions)
 	if err != nil {
@@ -45,7 +60,7 @@ func main(){
 	}
 	
 	rabbitConfig := queues.RabbitConfig{
-		Host:      "localhost", 
+		Host:      "rabbitmq", 
 		Port:      "5672",
 		Username:  "root",
 		Password:  "password",

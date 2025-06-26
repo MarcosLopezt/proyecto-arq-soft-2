@@ -19,7 +19,7 @@ import (
 
 func initializeSolr(service services.Service) {
 	// Hacer solicitud GET a la API de cursos para obtener todos los cursos
-	resp, err := http.Get("http://localhost:8083/cursos/all")
+	resp, err := http.Get("http://backend_courses:8083/cursos/all")
 	if err != nil {
 		log.Fatalf("Error al obtener cursos de la API: %v", err)
 	}
@@ -53,13 +53,13 @@ func initializeSolr(service services.Service) {
 func main() {
 	// Solr
 	solrRepo := repositories.NewSolr(repositories.SolrConfig{
-		Host:       "localhost",    
+		Host:       "solr",    
 		Port:       "8983",    
 		Collection: "courses",
 	})
 
 	eventsQueue := queues.NewRabbit(queues.RabbitConfig{
-		Host:      "localhost",
+		Host:      "rabbitmq",
 		Port:      "5672",
 		Username:  "root",
 		Password:  "password",
@@ -67,7 +67,7 @@ func main() {
 	})
 
 	coursesAPI := repositories.NewHTTP(repositories.HTTPConfig{
-		Host: "localhost",
+		Host: "backend_courses",
 		Port: "8083",
 	})
 
@@ -89,6 +89,16 @@ func main() {
 		AllowCredentials: true,
 		MaxAge:           12 * time.Hour,
 	}))
+
+	router.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"status": "healthy",
+			"service": "search-service",
+			"timestamp": gin.H{
+				"current": "2024-01-01T00:00:00Z",
+			},
+		})
+	})
 
 	router.GET("/search", controller.Search)
 	if err := router.Run(":8085"); err != nil {

@@ -28,6 +28,12 @@ function CreateCourse() {
   const [logoutOpen, setLogoutOpen] = useState(false);
   const [open, setOpen] = useState(false);
   const userId = parseInt(localStorage.getItem("userID"), 10);
+  
+  // Debug: verificar el valor del userID
+  console.log("userID from localStorage:", localStorage.getItem("userID"));
+  console.log("parsed userId:", userId);
+  console.log("isNaN userId:", isNaN(userId));
+  
   const handleLogoutClick = () => {
     setLogoutOpen(true);
   };
@@ -64,12 +70,17 @@ function CreateCourse() {
     const lengthInt = parseInt(curso.length, 10);
     const cuposInt = parseInt(curso.cupos, 10);
 
+    const requestBody = { ...curso, cupos: cuposInt, length: lengthInt };
+    console.log("curso", curso);
+    console.log("requestBody being sent:", requestBody);
+    console.log("user_id in requestBody:", requestBody.user_id);
+    
     const response = await fetch("http://localhost:8083/cursos/curso", {
-      method: "POST",
+    method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify({ ...curso, cupos: cuposInt, length: lengthInt }),
+      body: JSON.stringify(requestBody),
     });
 
     if (response.ok) {

@@ -251,7 +251,7 @@ func DeleteCourse(mongoClient *mongo.Client, request cursos.DeleteCourseRequest,
 }
 
 func GetRole(userId uint) (string, error) {
-	apiURL := fmt.Sprintf("http://localhost:8082/users/%d", userId)
+	apiURL := fmt.Sprintf("http://backend_users:8082/users/%d", userId)
 
 	// Hacer la solicitud HTTP al endpoint
 	resp, err := http.Get(apiURL)

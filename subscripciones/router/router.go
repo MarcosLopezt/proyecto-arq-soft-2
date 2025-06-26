@@ -9,6 +9,16 @@ import (
 )
 
 func SetupRouter(r *gin.Engine) *gin.Engine {
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"status": "healthy",
+			"service": "subscriptions-service",
+			"timestamp": gin.H{
+				"current": "2024-01-01T00:00:00Z",
+			},
+		})
+	})
+
 	 subsRoutes := r.Group("/subscriptions")
 	{
 	 	subsRoutes.POST("/sub", subs.CreateSubs)
