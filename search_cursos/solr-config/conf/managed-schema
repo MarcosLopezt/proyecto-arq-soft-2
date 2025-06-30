@@ -18,4 +18,5 @@
   <field name="description" type="text_general" indexed="true" stored="true"/>
   <field name="id" type="text_general" indexed="true" required="true" stored="true"/>
   <field name="length" type="float" indexed="true" stored="true"/>
+  <field name="cupos" type="float" indexed="true" stored="true"/>
 </schema>

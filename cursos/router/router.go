@@ -9,6 +9,17 @@ import (
 )
 
 func SetupRouter(r *gin.Engine, mongoClient *mongo.Client, rabbit *queues.Rabbit) *gin.Engine {
+	// Health check endpoint
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"status": "healthy",
+			"service": "courses-service",
+			"timestamp": gin.H{
+				"current": "2024-01-01T00:00:00Z",
+			},
+		})
+	})
+
 	courseRoutes := r.Group("/cursos")
 	{
 		courseRoutes.POST("/curso", func(c *gin.Context) {
