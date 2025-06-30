@@ -53,7 +53,10 @@ func (searchEngine Solr) Search(ctx context.Context, query string, limit int, of
     }
     fq := ""
     if availableOnly {
-        fq = "&fq=capacity:[* TO *] AND enrolled:[0 TO *] AND enrolled < capacity"
+        // No podemos filtrar por disponibilidad directamente en SolR
+        // porque necesitamos calcular dinámicamente con el endpoint de subscripciones
+        // Por ahora, obtenemos todos los cursos y filtramos después
+        fq = ""
     }
 	selectURL := fmt.Sprintf("%s/%s/select?q=%s&qf=course_name^2+description^1+category^1&defType=edismax&rows=%d&start=%d&wt=json%s",
     searchEngine.BaseURL, searchEngine.Collection, url.QueryEscape(query), limit, offset, fq)
@@ -82,7 +85,10 @@ func (searchEngine Solr) Search(ctx context.Context, query string, limit int, of
 	if err := json.Unmarshal(respBody, &result); err != nil {
 		return nil, fmt.Errorf("error parseando respuesta: %w", err)
 	}
+    
     var cursosList []cursos.Curso
+    subscriptionsClient := NewSubscriptionsClient("http://backend_subscriptions:8084")
+    
     for _, doc := range result.Response.Docs {
         curso := cursos.Curso{
             ID:          uint(getIntField(doc, "id")),
@@ -90,7 +96,23 @@ func (searchEngine Solr) Search(ctx context.Context, query string, limit int, of
             Description: getStringField(doc, "description"),
             Category:    getStringField(doc, "category"),
             Length:      getIntField(doc, "length"),
+            Cupos:       getIntField(doc, "cupos"),
         }
+        
+        // Si se requiere filtrar por disponibilidad, calcular dinámicamente
+        if availableOnly {
+            inscriptos, err := subscriptionsClient.GetSubsByCursoId(ctx, curso.ID)
+            if err != nil {
+                log.Printf("Warning: No se pudo obtener inscriptos para curso %d: %v", curso.ID, err)
+                continue // Saltar este curso si no se puede obtener la información
+            }
+            
+            disponibles := curso.Cupos - inscriptos
+            if disponibles <= 0 {
+                continue // Saltar cursos sin cupos disponibles
+            }
+        }
+        
         cursosList = append(cursosList, curso)
     }
     return cursosList, nil
@@ -117,12 +139,27 @@ func getIntField(doc map[string]interface{}, field string) int {
 }
 
 func (searchEngine Solr) Index(ctx context.Context, curso cursos.Curso) (string, error) {
+	// Obtener la cantidad de inscriptos desde la API de subscripciones
+	subscriptionsClient := NewSubscriptionsClient("http://backend_subscriptions:8084")
+	inscriptos, err := subscriptionsClient.GetSubsByCursoId(ctx, curso.ID)
+	if err != nil {
+		log.Printf("Warning: No se pudo obtener inscriptos para curso %d: %v", curso.ID, err)
+		inscriptos = 0 // Valor por defecto si no se puede obtener
+	}
+
+	// Calcular cupos disponibles
+	disponibles := curso.Cupos - inscriptos
+	if disponibles < 0 {
+		disponibles = 0
+	}
+
 	doc := map[string]interface{}{
 		"id":          fmt.Sprintf("%d", curso.ID),
 		"course_name": curso.CourseName,
 		"description": curso.Description,
 		"category":    curso.Category,
 		"length":      curso.Length,
+		"cupos":       curso.Cupos,
 	}
 	indexRequest := map[string]interface{}{
 		"add": []interface{}{doc},
@@ -156,6 +193,20 @@ func (searchEngine Solr) Index(ctx context.Context, curso cursos.Curso) (string,
 
 
 func (s Solr) Update(ctx context.Context, curso cursos.Curso) error {
+    // Obtener la cantidad de inscriptos desde la API de subscripciones
+    subscriptionsClient := NewSubscriptionsClient("http://backend_subscriptions:8084")
+    inscriptos, err := subscriptionsClient.GetSubsByCursoId(ctx, curso.ID)
+    if err != nil {
+        log.Printf("Warning: No se pudo obtener inscriptos para curso %d: %v", curso.ID, err)
+        inscriptos = 0 // Valor por defecto si no se puede obtener
+    }
+
+    // Calcular cupos disponibles
+    disponibles := curso.Cupos - inscriptos
+    if disponibles < 0 {
+        disponibles = 0
+    }
+
     // Construir el documento a actualizar
     doc := map[string]interface{}{
         "id":          fmt.Sprintf("%d", curso.ID),
@@ -163,6 +214,7 @@ func (s Solr) Update(ctx context.Context, curso cursos.Curso) error {
         "description": curso.Description,
         "category":    curso.Category,
         "length":      curso.Length,
+        "cupos":       curso.Cupos,
     }
     updateRequest := map[string]interface{}{
         "add": []interface{}{doc},

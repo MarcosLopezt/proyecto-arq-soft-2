@@ -31,7 +31,16 @@ import "../components/Componentes.css";
 function Course() {
   const [logoutOpen, setLogoutOpen] = useState(false);
   const navigate = useNavigate();
-  const courseID = parseInt(localStorage.getItem("courseID"), 10);
+  
+  // Agregar logs para debug del courseID
+  const courseIDRaw = localStorage.getItem("courseID");
+  console.log("courseID raw del localStorage:", courseIDRaw);
+  console.log("tipo de courseID raw:", typeof courseIDRaw);
+  
+  const courseID = parseInt(courseIDRaw, 10);
+  console.log("courseID después de parseInt:", courseID);
+  console.log("tipo de courseID después de parseInt:", typeof courseID);
+  
   const titulo = localStorage.getItem("cursoTitulo");
   const descripcion = localStorage.getItem("cursoDescripcion");
   const categoria = localStorage.getItem("cursoCategoria");
@@ -47,6 +56,8 @@ function Course() {
   const [value, setValue] = useState(0);
   const [disp, setDisp] = useState(0);
   const [disponibles, setDisponibles] = useState(true);
+  const [loadingAvailability, setLoadingAvailability] = useState(false);
+  const [availabilityError, setAvailabilityError] = useState(null);
 
   const handleLogoutClick = () => {
     setLogoutOpen(true);
@@ -63,29 +74,64 @@ function Course() {
   };
 
   useEffect(() => {
-    if (disponibles) {
+    console.log("useEffect ejecutado - courseID:", courseID);
+    if (courseID) {
+      console.log("Ejecutando searchDisp con courseID:", courseID);
       searchDisp();
+    } else {
+      console.log("No hay courseID disponible");
     }
-  }, [disponibles]);
+  }, [courseID]);
 
   const searchDisp = async () => {
-    const response = await fetch(
-      `http://localhost:8083/cursos/get/${courseID}`,
-      {
-        method: "GET",
-        headers: {
-          "Content-Type": "application/json",
-        },
-      }
-    );
+    console.log("searchDisp iniciado - courseID:", courseID);
+    if (!courseID) {
+      console.log("No hay courseID, saliendo de searchDisp");
+      return;
+    }
+    
+    console.log("Iniciando petición de disponibilidad...");
+    setLoadingAvailability(true);
+    setAvailabilityError(null);
+    
+    try {
+      const response = await fetch(
+        `http://localhost:8083/cursos/availability/concurrent`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify([courseID]), // Enviar array con el ID del curso
+        }
+      );
 
-    if (response.status === 200) {
-      const data = await response.json();
-      console.log("RESPUESTA", data);
-      setDisp(data.disponibles);
-      //console.log(courses[0]);
-    } else {
-      console.log("No existe el curso");
+      if (response.ok) {
+        const data = await response.json();
+        console.log("Respuesta disponibilidad concurrente:", data);
+        
+        // Buscar el resultado para el curso actual
+        const courseResult = data.results.find(result => result.course_id === courseID);
+        
+        if (courseResult) {
+          setDisp(courseResult.disponibles || 0);
+          console.log(`Curso ${courseID} - Disponibles: ${courseResult.disponibles}`);
+          console.log(`Información completa del curso:`, courseResult);
+        } else {
+          setDisp(0);
+          setAvailabilityError("No se pudo obtener la disponibilidad del curso");
+        }
+      } else {
+        console.error("Error al obtener disponibilidad:", response.status);
+        setAvailabilityError("Error al calcular la disponibilidad");
+        setDisp(0);
+      }
+    } catch (error) {
+      console.error("Error en la petición de disponibilidad:", error);
+      setAvailabilityError("Error de conexión al calcular disponibilidad");
+      setDisp(0);
+    } finally {
+      setLoadingAvailability(false);
     }
   };
 
@@ -107,6 +153,11 @@ function Course() {
       console.log(data);
       setOpen(true);
       setSubscripto(true);
+      
+      // Actualizar la disponibilidad después de la suscripción exitosa
+      setTimeout(() => {
+        searchDisp();
+      }, 1000); // Pequeño delay para asegurar que la suscripción se procese
     } else {
       console.log("Error en la subscripcion");
     }
@@ -314,18 +365,44 @@ function Course() {
           >
             {descripcion}
           </Typography>
-          <Typography>Disponibilidad: {disp}</Typography>
+          
+          {/* Sección de disponibilidad mejorada */}
+          <Typography variant="h6" sx={{ marginTop: "20px", marginBottom: "10px" }}>
+            Disponibilidad:
+          </Typography>
+          
+          {loadingAvailability ? (
+            <Typography variant="body1" sx={{ color: "#666", fontStyle: "italic" }}>
+              Calculando disponibilidad...
+            </Typography>
+          ) : availabilityError ? (
+            <Typography variant="body1" sx={{ color: "#d32f2f", marginBottom: "10px" }}>
+              {availabilityError}
+            </Typography>
+          ) : (
+            <Typography variant="body1" sx={{ 
+              color: disp > 0 ? "#2e7d32" : "#d32f2f",
+              fontWeight: "bold",
+              marginBottom: "10px"
+            }}>
+              {disp > 0 ? `${disp} cupo(s) disponible(s)` : "No hay cupos disponibles"}
+            </Typography>
+          )}
+          
+          
           <Button
             variant="contained"
             className="button-subscribe"
             onClick={subscripto ? handleSubscribed : handleSubscription}
-            disabled={disp === 0}
+            disabled={disp === 0 || loadingAvailability}
             sx={{
               marginTop: "20px",
-              backgroundColor: disp === 0 ? "gray" : "rgb(49, 45, 45)",
+              backgroundColor: disp === 0 || loadingAvailability ? "gray" : "rgb(49, 45, 45)",
             }}
           >
-            {disp === 0
+            {loadingAvailability 
+              ? "Calculando disponibilidad..." 
+              : disp === 0
               ? "No hay disponibilidad"
               : subscripto
               ? "Inscripto"

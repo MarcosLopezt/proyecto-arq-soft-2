@@ -3,6 +3,7 @@ module admin
 go 1.23.4
 
 require (
+	github.com/docker/docker v20.10.24+incompatible
 	github.com/gin-contrib/cors v1.7.2
 	github.com/gin-gonic/gin v1.10.0
 )
@@ -39,3 +40,5 @@ require (
 	google.golang.org/protobuf v1.36.0 // indirect
 	gopkg.in/yaml.v3 v3.0.1 // indirect
 )
+
+replace github.com/docker/distribution => github.com/docker/distribution v2.7.1+incompatible

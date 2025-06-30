@@ -1,6 +1,9 @@
 # Usa una imagen base de Go más reciente (1.23 o superior)
 FROM golang:1.23-alpine
 
+# Instalar Docker CLI
+RUN apk add --no-cache docker-cli
+
 # Establece el directorio de trabajo
 WORKDIR /app
 

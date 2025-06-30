@@ -6,6 +6,7 @@
         <field name="description" type="text_general" indexed="true" stored="true"/>
         <field name="category" type="text_general" indexed="true" stored="true"/>
         <field name="length" type="float" indexed="true" stored="true"/>
+        <field name="cupos" type="int" indexed="true" stored="true"/>
     </fields>
 
     <uniqueKey>id</uniqueKey>
@@ -22,4 +23,7 @@
 
     <!-- Definición del tipo de campo float -->
     <fieldType name="float" class="solr.TrieFloatField" precisionStep="0" docValues="true"/>
+    
+    <!-- Definición del tipo de campo int -->
+    <fieldType name="int" class="solr.TrieIntField" precisionStep="0" docValues="true"/>
 </schema>

@@ -16,6 +16,9 @@ import {
   ListItemButton,
   Snackbar,
   Alert,
+  FormControlLabel,
+  Checkbox,
+  Box,
 } from "@mui/material";
 import SearchIcon from "@mui/icons-material/Search";
 import SettingsIcon from "@mui/icons-material/Settings";
@@ -39,6 +42,7 @@ function Home() {
   const [authenticated, setAuthenticated] = useState(false);
   const [snackbarOpen, setSnackbarOpen] = useState(false);
   const [snackbarMessage, setSnackbarMessage] = useState("");
+  const [availableOnly, setAvailableOnly] = useState(false);
 
   // useEffect(() => {
   //   setUserRole(role);
@@ -48,7 +52,7 @@ function Home() {
     if (recomendados) {
       searchRecommended();
     }
-  }, [recomendados]);
+  }, [recomendados, availableOnly]);
 
   useEffect(() => {
     setAuthenticated(isAuthenticated);
@@ -75,21 +79,33 @@ function Home() {
   };
 
   const searchRecommended = async () => {
-    const name = "all"; //cursos recomendados a buscar
-    const response = await fetch(`http://localhost:8083/cursos/${name}`, {
-      method: "GET",
-      headers: {
-        "Content-Type": "application/json",
-      },
-    });
+    // Siempre usar el servicio de búsqueda, con availableOnly según el estado del checkbox
+    const availableParam = availableOnly ? "&availableOnly=true" : "&availableOnly=false";
+    const response = await fetch(
+      `http://localhost:8085/search?q=*:*&offset=0&limit=10${availableParam}`,
+      {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      }
+    );
 
     if (response.status === 200) {
       const data = await response.json();
-      setCourses(data);
-      //console.log(courses[0]);
+      console.log("Respuesta completa del servicio de búsqueda:", data);
+      console.log("data.courses:", data.courses);
+      
+      if (!data.courses || data.courses.length === 0) {
+        setSnackbarMessage("No existen cursos disponibles.");
+        setSnackbarOpen(true);
+      } else {
+        console.log("Primer curso de la respuesta:", data.courses[0]);
+        setCourses(data.courses);
+      }
     } else {
-      console.log("No existe el curso");
-      setSnackbarMessage("No existen cursos con ese nombre o categoría.");
+      console.log("Error al buscar cursos");
+      setSnackbarMessage("Error al buscar cursos.");
       setSnackbarOpen(true);
     }
   };
@@ -119,8 +135,9 @@ function Home() {
   });
 
   const search = async (name) => {
+    const availableParam = availableOnly ? "&availableOnly=true" : "";
     const response = await fetch(
-      `http://localhost:8085/search?q=${name}&offset=0&limit=10`,
+      `http://localhost:8085/search?q=${name}&offset=0&limit=10${availableParam}`,
       {
         method: "GET",
         headers: {
@@ -131,10 +148,14 @@ function Home() {
 
     if (response.status === 200) {
       const data = await response.json();
+      console.log("Respuesta completa de búsqueda por nombre:", data);
+      console.log("data.courses:", data.courses);
+      
       if (!data.courses || data.courses.length === 0) {
         setSnackbarMessage("No existen cursos con ese nombre o categoría.");
         setSnackbarOpen(true);
       } else {
+        console.log("Primer curso de la búsqueda:", data.courses[0]);
         setCourses(data.courses);
       }
     } else {
@@ -156,6 +177,14 @@ function Home() {
 
   const navigateToMicroservicios = () => {
     navigate("/microservicios"); // Navegar a la ruta '/microservicios'
+  };
+
+  const handleAvailableOnlyChange = (event) => {
+    setAvailableOnly(event.target.checked);
+    // Si no hay texto de búsqueda, ejecutar búsqueda automáticamente
+    if (!values.text.trim()) {
+      setRecomendados(true);
+    }
   };
 
   return (
@@ -255,6 +284,29 @@ function Home() {
           </Menu>
         </Toolbar>
       </AppBar>
+
+      {/* Checkbox para filtrar por cupos disponibles */}
+      <Box sx={{ padding: "20px 60px 0px 60px" }}>
+        <FormControlLabel
+          control={
+            <Checkbox
+              checked={availableOnly}
+              onChange={handleAvailableOnlyChange}
+              sx={{
+                color: "#785589",
+                "&.Mui-checked": {
+                  color: "#785589",
+                },
+              }}
+            />
+          }
+          label="Mostrar solo cursos con cupos disponibles"
+          sx={{
+            color: "#785589",
+            fontWeight: "bold",
+          }}
+        />
+      </Box>
 
       {courses && courses.length > 0 && <Courses courses={courses} />}
 

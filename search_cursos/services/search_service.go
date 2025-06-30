@@ -49,6 +49,7 @@ func (service Service) InitializeSolr(ctx context.Context) error {
 			Category:    curso.Category,
 			Length:      curso.Length,
 			Description: curso.Description,
+			Cupos:       curso.Cupos,
 		}
 
 		// Indexar curso en Solr
@@ -79,6 +80,7 @@ func (service Service) Search(ctx context.Context, query string, offset int, lim
 			Description: curso.Description,
 			Category:    curso.Category,	
 			Length:      curso.Length,
+			Cupos:       curso.Cupos,
 		})
 	}
 
@@ -102,6 +104,7 @@ func (service Service) HandleCursoNew(cursoNew cursosDomain.CursoNew){
 			Category: curso.Category,
 			Length: curso.Length,
 			Description: curso.Description,
+			Cupos: curso.Cupos,
 		}
 
         // Si la operación es CREATE, indexamos el curso en Solr

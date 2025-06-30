@@ -35,8 +35,16 @@ type CourseService struct {
 
 // AvailabilityResponse representa la respuesta de disponibilidad de un curso
 type AvailabilityResponse struct {
-	CourseID  uint `json:"course_id"`
-	Available bool `json:"available"`
+	CourseID    uint      `json:"course_id"`
+	CourseName  string    `json:"course_name"`
+	Category    string    `json:"category"`
+	Length      int       `json:"length"`
+	Cupos       int       `json:"cupos"`
+	Description string    `json:"description"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	Available   bool      `json:"available"`
+	Disponibles int       `json:"disponibles"`
 }
 
 func CreateCourse(mongoClient *mongo.Client, request cursos.CreateCourseRequest, rabbit *queues.Rabbit) (cursos.CreateCourseResponse, error) {
@@ -282,9 +290,17 @@ func GetRole(userId uint) (string, error) {
 
 func CheckAvailability(mongoClient *mongo.Client, courseIDs []uint) ([]AvailabilityResponse, error) {
     type availabilityResult struct {
-        CourseID uint
-        Available bool
-        Err      error
+        CourseID    uint
+        CourseName  string
+        Category    string
+        Length      int
+        Cupos       int
+        Description string
+        CreatedAt   time.Time
+        UpdatedAt   time.Time
+        Available   bool
+        Disponibles int
+        Err         error
     }
 
     resultsChan := make(chan availabilityResult, len(courseIDs))
@@ -295,6 +311,8 @@ func CheckAvailability(mongoClient *mongo.Client, courseIDs []uint) ([]Availabil
         go func(id uint) {
             defer wg.Done()
             courseDAO := dao.NewMongoCourseDAO(mongoClient, "arqui_soft", "courses")
+            
+            // Obtener el curso
             course, err := courseDAO.GetCourseByID(context.Background(), fmt.Sprintf("%d", id))
             if err != nil {
                 resultsChan <- availabilityResult{CourseID: id, Err: err}
@@ -304,10 +322,27 @@ func CheckAvailability(mongoClient *mongo.Client, courseIDs []uint) ([]Availabil
                 resultsChan <- availabilityResult{CourseID: id, Err: errors.New("course not found")}
                 return
             }
-            // Asumiendo que hay campos Capacity y Enrolled en el modelo Course
-            // Si no existen, puedes ajustar esta lógica
-            available := course.Cupos > 0 // Simplificado para usar Cupos
-            resultsChan <- availabilityResult{CourseID: id, Available: available}
+            
+            // Calcular disponibilidad real de forma concurrente
+            disponibles, err := courseDAO.CalcularDisponibilidad(context.Background(), course.ID)
+            if err != nil {
+                resultsChan <- availabilityResult{CourseID: id, Err: err}
+                return
+            }
+            
+            available := disponibles > 0
+            resultsChan <- availabilityResult{
+                CourseID:    course.ID,
+                CourseName:  course.CourseName,
+                Category:    course.Category,
+                Length:      course.Length,
+                Cupos:       course.Cupos,
+                Description: course.Description,
+                CreatedAt:   course.CreatedAt,
+                UpdatedAt:   course.UpdatedAt,
+                Available:   available,
+                Disponibles: disponibles,
+            }
         }(id)
     }
 
@@ -323,8 +358,16 @@ func CheckAvailability(mongoClient *mongo.Client, courseIDs []uint) ([]Availabil
             continue
         }
         responses = append(responses, AvailabilityResponse{
-            CourseID:  result.CourseID,
-            Available: result.Available,
+            CourseID:    result.CourseID,
+            CourseName:  result.CourseName,
+            Category:    result.Category,
+            Length:      result.Length,
+            Cupos:       result.Cupos,
+            Description: result.Description,
+            CreatedAt:   result.CreatedAt,
+            UpdatedAt:   result.UpdatedAt,
+            Available:   result.Available,
+            Disponibles: result.Disponibles,
         })
     }
 

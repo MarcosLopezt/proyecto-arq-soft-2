@@ -3,18 +3,18 @@
 <schema name="courses" version="1.6">
   <uniqueKey>id</uniqueKey>
   <fieldType name="float" class="solr.TrieFloatField" docValues="true" precisionStep="0"/>
+  <fieldType name="int" class="solr.TrieIntField" docValues="true" precisionStep="0"/>
   <fieldType name="text_general" class="solr.TextField" positionIncrementGap="100">
     <analyzer type="index">
       <tokenizer class="solr.StandardTokenizerFactory"/>
-      <filter class="solr.LowerCaseFilterFactory"/>
     </analyzer>
     <analyzer type="query">
       <tokenizer class="solr.StandardTokenizerFactory"/>
-      <filter class="solr.LowerCaseFilterFactory"/>
     </analyzer>
   </fieldType>
   <field name="category" type="text_general" indexed="true" stored="true"/>
   <field name="course_name" type="text_general" indexed="true" stored="true"/>
+  <field name="cupos" type="int" indexed="true" stored="true"/>
   <field name="description" type="text_general" indexed="true" stored="true"/>
   <field name="id" type="text_general" indexed="true" required="true" stored="true"/>
   <field name="length" type="float" indexed="true" stored="true"/>

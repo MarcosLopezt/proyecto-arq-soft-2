@@ -85,3 +85,31 @@ func DeleteCourse(c *gin.Context, mongoClient *mongo.Client, rabbit *queues.Rabb
 
 	c.JSON(http.StatusOK, course)
 }
+
+// CheckAvailabilityConcurrent calcula la disponibilidad de múltiples cursos de forma concurrente
+func CheckAvailabilityConcurrent(c *gin.Context, mongoClient *mongo.Client) {
+	var courseIDs []uint
+	if err := c.ShouldBindJSON(&courseIDs); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid course IDs format"})
+		return
+	}
+
+	if len(courseIDs) == 0 {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Course IDs list cannot be empty"})
+		return
+	}
+
+	// Calcular disponibilidad de forma concurrente
+	availabilityResults, err := cursosService.CheckAvailability(mongoClient, courseIDs)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"message": "Disponibilidad calculada concurrentemente",
+		"results": availabilityResults,
+		"total_courses": len(courseIDs),
+		"processed_courses": len(availabilityResults),
+	})
+}

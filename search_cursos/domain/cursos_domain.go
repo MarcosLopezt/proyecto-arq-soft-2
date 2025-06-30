@@ -8,6 +8,7 @@ type Curso struct {
     Category    string    `json:"category"`
     Length      int       `json:"length"`
     Description string    `json:"description"`
+    Cupos       int       `json:"cupos"`
     CreatedAt   time.Time `json:"created_at"`
     UpdatedAt   time.Time `json:"updated_at"`
 }

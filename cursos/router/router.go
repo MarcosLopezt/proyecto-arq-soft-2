@@ -40,6 +40,9 @@ func SetupRouter(r *gin.Engine, mongoClient *mongo.Client, rabbit *queues.Rabbit
 		courseRoutes.GET("/all", func(c *gin.Context){
 			controllers.GetAllCourses(c, mongoClient)
 		})
+		courseRoutes.POST("/availability/concurrent", func(c *gin.Context) {
+			controllers.CheckAvailabilityConcurrent(c, mongoClient)
+		})
 	}
 	return r
 }
