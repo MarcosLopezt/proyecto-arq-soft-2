@@ -25,11 +25,22 @@ import {
   TextField,
   Alert,
   Snackbar,
+  Box,
+  Paper,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
+  CircularProgress,
+  Divider,
 } from "@mui/material";
 import AccountCircleIcon from "@mui/icons-material/AccountCircle";
 import LogoutIcon from "@mui/icons-material/Logout";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteIcon from "@mui/icons-material/Delete";
+import SpeedIcon from "@mui/icons-material/Speed";
 import { useNavigate } from "react-router-dom";
 import "../components/Componentes.css";
 
@@ -47,6 +58,8 @@ function Microservicios() {
     message: "",
     severity: "success",
   });
+  const [balanceoResults, setBalanceoResults] = useState(null);
+  const [isLoadingBalanceo, setIsLoadingBalanceo] = useState(false);
 
   const handleLogoutClick = () => {
     setLogoutOpen(true);
@@ -129,6 +142,32 @@ function Microservicios() {
     } catch (error) {
       console.error("Error deleting instance:", error);
       showSnackbar("Error de conexión al eliminar la instancia", "error");
+    }
+  };
+
+  const realizarPruebaBalanceo = async () => {
+    setIsLoadingBalanceo(true);
+    try {
+      const response = await fetch("http://localhost:8087/admin/services/balanceo?num_peticiones=10", {
+        method: "GET",
+        headers: {
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setBalanceoResults(data);
+        showSnackbar("Prueba de balanceo completada", "success");
+      } else {
+        const errorData = await response.json();
+        showSnackbar(errorData.error || "Error al realizar la prueba de balanceo", "error");
+      }
+    } catch (error) {
+      console.error("Error testing load balancing:", error);
+      showSnackbar("Error de conexión al realizar la prueba de balanceo", "error");
+    } finally {
+      setIsLoadingBalanceo(false);
     }
   };
 
@@ -267,6 +306,97 @@ function Microservicios() {
             </Grid>
           )}
         </Grid>
+
+        {/* Sección de Pruebas de Balanceo de Carga */}
+        <Box sx={{ mt: 4 }}>
+          <Divider sx={{ mb: 3 }}>
+            <Typography variant="h6" color="text.secondary">
+              Pruebas de Balanceo de Carga
+            </Typography>
+          </Divider>
+          
+          <Box sx={{ display: "flex", justifyContent: "center", mb: 3 }}>
+            <Button
+              variant="contained"
+              startIcon={isLoadingBalanceo ? <CircularProgress size={20} color="inherit" /> : <SpeedIcon />}
+              onClick={realizarPruebaBalanceo}
+              disabled={isLoadingBalanceo}
+              sx={{ 
+                backgroundColor: "#785589",
+                minWidth: 200,
+                height: 48
+              }}
+            >
+              {isLoadingBalanceo ? "Ejecutando..." : "Probar Balanceo de Carga"}
+            </Button>
+          </Box>
+
+          {/* Resultados de la prueba de balanceo */}
+          {balanceoResults && (
+            <Paper sx={{ p: 3, mt: 2 }}>
+              <Typography variant="h6" gutterBottom>
+                Resultados de la Prueba de Balanceo
+              </Typography>
+              
+              {/* Resumen */}
+              <Box sx={{ mb: 3 }}>
+                <Typography variant="subtitle1" gutterBottom>
+                  Resumen:
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Total de peticiones: {balanceoResults.total_peticiones}
+                </Typography>
+                <Typography variant="body2" color="text.secondary">
+                  Instancias utilizadas: {balanceoResults.resumen.total_instancias}
+                </Typography>
+                <Box sx={{ mt: 1 }}>
+                  {Object.entries(balanceoResults.resumen.distribucion_puertos).map(([puerto, count]) => (
+                    <Chip
+                      key={puerto}
+                      label={`Puerto ${puerto}: ${count} peticiones`}
+                      color="primary"
+                      variant="outlined"
+                      sx={{ mr: 1, mb: 1 }}
+                    />
+                  ))}
+                </Box>
+              </Box>
+
+              {/* Tabla de resultados detallados */}
+              <Typography variant="subtitle1" gutterBottom>
+                Detalle de Peticiones:
+              </Typography>
+              <TableContainer>
+                <Table size="small">
+                  <TableHead>
+                    <TableRow>
+                      <TableCell># Petición</TableCell>
+                      <TableCell>Puerto</TableCell>
+                      <TableCell>Hostname</TableCell>
+                      <TableCell>Timestamp</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {balanceoResults.resultados.map((resultado) => (
+                      <TableRow key={resultado.numero_peticion}>
+                        <TableCell>{resultado.numero_peticion}</TableCell>
+                        <TableCell>
+                          <Chip
+                            label={resultado.puerto}
+                            size="small"
+                            color={resultado.puerto === "8082" ? "success" : "info"}
+                          />
+                        </TableCell>
+                        <TableCell>{resultado.hostname}</TableCell>
+                        <TableCell>{resultado.timestamp}</TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Paper>
+          )}
+        </Box>
       </Container>
 
       {/* Dialog para crear nueva instancia */}

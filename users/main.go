@@ -39,7 +39,17 @@ func main(){
 
 	router.SetupRouter(engine, cacheInstance)
 
-	err = engine.Run(":8082")
+	port := os.Getenv("PORT")
+	log.Printf("Variable de entorno PORT: '%s'", port)
+	if port == "" {
+	    port = "8082" // puerto por defecto
+	    log.Printf("Usando puerto por defecto: %s", port)
+	} else {
+	    log.Printf("Usando puerto de variable de entorno: %s", port)
+	}
+
+	log.Printf("Iniciando servidor en puerto: %s", port)
+	err = engine.Run(":" + port)
     if err != nil {
         log.Fatalf("Error al ejecutar el servidor: %v", err)
     }

@@ -272,6 +272,7 @@ function Home() {
                 </ListItemButton>
               </List>
               {/* Botón para navegar a /microservicios con icono de ajustes */}
+              {userRole === "admin" && (
               <List>
                 <ListItemButton onClick={navigateToMicroservicios}>
                   <ListItemIcon>
@@ -280,6 +281,7 @@ function Home() {
                   <ListItemText primary="Ir a Microservicios" />
                 </ListItemButton>
               </List>
+              )}
             </div>
           </Menu>
         </Toolbar>

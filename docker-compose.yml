@@ -23,6 +23,7 @@ services:
     ports:
       - "8082:8082"
     environment:
+      PORT: "8082"
       DB_HOST: mysql
       DB_PORT: "3306"
       DB_USER: root
@@ -47,6 +48,7 @@ services:
     ports:
       - "8088:8088"
     environment:
+      PORT: "8088"
       DB_HOST: mysql
       DB_PORT: "3306"
       DB_USER: root

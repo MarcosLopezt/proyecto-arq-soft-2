@@ -3,9 +3,12 @@ package services
 import (
 	"admin/models"
 	"context"
+	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/docker/docker/api/types"
 	"github.com/docker/docker/client"
@@ -13,6 +16,61 @@ import (
 
 // Mapa para almacenar las instancias activas
 var instanciasActivas = make(map[string]models.Instancia)
+
+// ResultadoPruebaBalanceo representa el resultado de una prueba de balanceo de carga
+type ResultadoPruebaBalanceo struct {
+	NumeroPeticion int    `json:"numero_peticion"`
+	Puerto         string `json:"puerto"`
+	Hostname       string `json:"hostname"`
+	Timestamp      string `json:"timestamp"`
+}
+
+// RealizarPruebaBalanceo ejecuta múltiples peticiones para probar el balanceo de carga
+func RealizarPruebaBalanceo(numPeticiones int) ([]ResultadoPruebaBalanceo, error) {
+	var resultados []ResultadoPruebaBalanceo
+	
+	for i := 1; i <= numPeticiones; i++ {
+		// Realizar petición al endpoint de users a través de nginx
+		resp, err := http.Get("http://nginx:80/users/health")
+		if err != nil {
+			return nil, fmt.Errorf("error en petición %d: %v", i, err)
+		}
+		
+		// Leer el cuerpo de la respuesta
+		body, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if err != nil {
+			return nil, fmt.Errorf("error leyendo respuesta %d: %v", i, err)
+		}
+		
+		// Parsear la respuesta JSON
+		var response struct {
+			Instance struct {
+				Port     string `json:"port"`
+				Hostname string `json:"hostname"`
+			} `json:"instance"`
+		}
+		
+		if err := json.Unmarshal(body, &response); err != nil {
+			return nil, fmt.Errorf("error parseando JSON de petición %d: %v", i, err)
+		}
+		
+		// Crear resultado
+		resultado := ResultadoPruebaBalanceo{
+			NumeroPeticion: i,
+			Puerto:         response.Instance.Port,
+			Hostname:       response.Instance.Hostname,
+			Timestamp:      time.Now().Format("15:04:05"),
+		}
+		
+		resultados = append(resultados, resultado)
+		
+		// Esperar 500ms entre peticiones
+		time.Sleep(500 * time.Millisecond)
+	}
+	
+	return resultados, nil
+}
 
 func CrearInstancia(instancia models.Instancia) error {
 	// Generar un ID único si no se proporciona
@@ -58,8 +116,10 @@ func ObtenerInstancias() ([]models.Instancia, error) {
 	}
 	defer cli.Close()
 
-	// Obtener lista de contenedores
-	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{})
+	// Obtener lista de contenedores (incluyendo todos los estados)
+	containers, err := cli.ContainerList(context.Background(), types.ContainerListOptions{
+		All: true, // Incluir todos los contenedores, no solo los que están corriendo
+	})
 	if err != nil {
 		return nil, fmt.Errorf("error al listar contenedores: %v", err)
 	}

@@ -2,6 +2,7 @@ package users
 
 import (
 	"net/http"
+	"os"
 	"time"
 	usersDomain "users/models"
 	usersService "users/services"
@@ -12,6 +13,14 @@ import (
 )
 
 var Db *gorm.DB
+
+func Ping(c *gin.Context) {
+	hostname, _ := os.Hostname()
+	c.JSON(200, gin.H{
+		"message": "Ping recibido",
+		"host":    hostname,
+	})
+}
 
 func LoginHandler(c *gin.Context, cache cache.Cache) {
 	var loginRequest usersDomain.LoginRequest
